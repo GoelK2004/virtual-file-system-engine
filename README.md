@@ -58,7 +58,8 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 
 | Command       | Description |
 |---------------|-------------|
-| `create`      | Create a file with optional size and permissions |
+| `help`        | View all the available command |
+| `create`      | Create a file with optional size |
 | `write`       | Write or overwrite data to a file |
 | `append`      | Append data to a file |
 | `read`        | Read file content |
