@@ -87,7 +87,8 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 
 ```bash
 ├── include/           # Header files
-├── src/               # All C++ source files (excluding main.cpp)
+├── journal/           # Journal files
+├── src/               # All C++ source files (including main.cpp)
 ├── Makefile           # Updated build script
 ├── README.md          # Project documentation
 └── LICENSE            # License file
