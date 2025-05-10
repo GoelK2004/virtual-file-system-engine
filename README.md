@@ -19,7 +19,7 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
   - Attributes (hidden, read-only, system, archive)
 - Centralized metadata table with B+ Tree indexing for fast access
 
-### 🗃️ Efficient File Allocation
+### Efficient File Allocation
 - **Bitmap + Extents** used for block allocation
 - Reduced fragmentation and fast read/write performance
 
@@ -105,6 +105,5 @@ Reproduction, reuse, distribution, or modification is not permitted without prio
 
 For inquiries, reach out at goelkartikey2250@gmail.com
 
-## 📬 Contact
-If you're a recruiter or engineer interested in the design and implementation of this file system, feel free to reach out:
-📧 goelkartikey2250@gmail.com
+## Contact
+If you're a recruiter or engineer interested in the design and implementation of this file system, feel free to reach out: goelkartikey2250@gmail.com
