@@ -1,17 +1,17 @@
-# 📂 Virtual File System (VFS)
+# Virtual File System (VFS)
 
 A high-performance, modular, and feature-rich **Virtual File System** built from scratch in **C++**, designed to emulate real-world file systems like ext4 or NTFS. This system includes advanced components such as journaling, permission management, metadata caching, and multi-filesystem mounting, making it a complete simulation of how modern file systems work.
 
 ---
 
-## 🚀 Features
+## Features
 
-### 🧱 Core File System
+### Core File System
 - Disk-based file system built using a raw `myDisk.img` file
 - Custom block size support for flexibility
 - File and directory creation with user-defined sizes
 
-### 📂 Metadata Management
+### Metadata Management
 - `FileEntry` system supporting:
   - File name, size, extents
   - Timestamps (created, modified, accessed)
@@ -23,38 +23,38 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 - **Bitmap + Extents** used for block allocation
 - Reduced fragmentation and fast read/write performance
 
-### 📌 Journaling System
+### Journaling System
 - Write-Ahead Logging for crash recovery
 - Journaling of create, delete, write, rename, and permission change operations
 - Recovery on boot using uncommitted journal entries
 
-### 👥 User and Permission Management
+### User and Permission Management
 - User/group management (`userAdd`, `login`, `chown`, `chmod`, `chgrp`)
 - `whoami` command to show current session
 - Secure password handling
 - UID/GID mapping and enforcement of file access rights
 
-### 🧠 Metadata Caching
+### Metadata Caching
 - In-memory caching for Superblock, Bitmap, and Metadata
 - Reduced disk I/O on frequent access
 
-### 🔒 Fault Tolerance & Rollback
+### Fault Tolerance & Rollback
 - Journaling recovery
 - Safe rollback of metadata and data block allocations during crashes
 
-### 🌳 Directory Management
+### Directory Management
 - Nested directory support
 - `cd`, `mkdir`, `rmdir`, and `tree` navigation
 - Path resolution and absolute/relative path support
 
-### 🧩 Mounting System
+### Mounting System
 - Mount and unmount multiple file systems at different virtual mount paths
 - Independent management of mounted disks
 - CLI supports switching between mounted filesystems
 
 ---
 
-## 📘 Commands Implemented
+## Commands Implemented
 
 | Command       | Description |
 |---------------|-------------|
@@ -84,7 +84,7 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 
 ---
 
-## 📦 Project Structure
+## Project Structure
 
 ```bash
 ├── include/           # Header files
@@ -96,7 +96,7 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
  - Entry point: main.cpp
 ```
 
-## 📄 License
+## License
 
 **All Rights Reserved.**
 
