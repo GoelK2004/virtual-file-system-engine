@@ -280,23 +280,26 @@ void BPlusTree::insert(int key, const int metaIndex) {
 	if (static_cast<int>(leaf->keys.size()) < (order + 1) / 2)	handleLeafUnderflow(leaf);
 }
 
-int BPlusTree::search(int key) {
+bool BPlusTree::update(int key, int idx) {
 	BPlusTreeNode* leaf = findLeafNode(key);
 	int low = 0, high = leaf->keys.size() - 1, mid = -1;
 	while (low <= high){
 		mid = (low + high) / 2;
-		if (leaf->keys[mid] == key)	return leaf->values[mid];
+		if (leaf->keys[mid] == key) {
+			leaf->values[mid] = idx;
+			return true;
+		};
 		if (leaf->keys[mid] > key)	high = mid - 1;
 		else if (leaf->keys[mid] < key)	low = mid + 1;
 	}
-	return	-1;
+	return	false;
 
-	auto it = std::lower_bound(leaf->keys.begin(), leaf->keys.end(), key);
-	if (it != leaf->keys.end()){
-		int index = it - leaf->keys.begin();
-		if (leaf->keys[index] == key)	return leaf->values[index];
-	}
-	return -1;
+	// auto it = std::lower_bound(leaf->keys.begin(), leaf->keys.end(), key);
+	// if (it != leaf->keys.end()){
+	// 	int index = it - leaf->keys.begin();
+	// 	if (leaf->keys[index] == key)	return leaf->values[index];
+	// }
+	// return -1;
 }
 
 void BPlusTree::handleInternalUnderflow(BPlusTreeNode* node) {

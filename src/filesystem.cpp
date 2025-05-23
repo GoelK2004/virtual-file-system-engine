@@ -369,7 +369,7 @@ void deleteFile(System& fs, std::fstream &disk, FileEntry* file, const int fileI
 		return;
 	}
 	fs.Entries->removeFileEntry(file->fileName);
-	delete file;
+	
 	disk.flush();
 	std::cout << "\tFile deleted successfully.\n";
 }

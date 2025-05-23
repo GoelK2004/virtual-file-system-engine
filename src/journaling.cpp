@@ -145,7 +145,7 @@ void JournalManager::updateUncommitedOperations(std::vector<FileJournaling>& unc
 			system->writeData(entry.fileName, entry.data, true, entry.check, entry.timestamp);
 		} else if (entry.operation == OP_RENAME) {
 			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->renameDir(entry.fileName, entry.fileName, entry.check, entry.timestamp);
+			system->renameFiles(entry.fileName, entry.fileName, entry.check, entry.timestamp);
 		} else	continue;
 	}
 }

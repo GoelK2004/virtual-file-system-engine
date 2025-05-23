@@ -163,8 +163,12 @@ void System::loadFromDisk() {
 	std::fstream disk(DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
 	loadSuperblock(disk);
 	loadBitMap(disk);
+	if (!Entries->loadBPlusTree(disk)) {
+		std::cerr << "Error: Cannot load B+ Tree.\n";
+		exit(0);
+	}
 	loadDirectoryTable(disk);
-	Entries->loadBPlusTree(disk);
+	Entries->printMetadataTree();
 	loadUsers(disk);
 	journalManager->loadJournal();
 	journalManager->recoverUncommitedOperations();

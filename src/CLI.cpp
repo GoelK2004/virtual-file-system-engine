@@ -69,6 +69,7 @@ void CommandLineInterface::runCLI() {
 		else if (cmd == "showusr" && args.size() == 1)	vfs->showUsers();
 		else if (cmd == "showgrp" && args.size() == 1)	vfs->showGroups();
 		else if (cmd == "tree" && args.size() == 1)	vfs->tree();
+		else if (cmd == "btree" && args.size() == 1)	vfs->bTree();
         else if (cmd == "exit") {
             std::cout << "Exiting file system.\n";
             break;

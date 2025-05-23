@@ -2,7 +2,6 @@
 
 void System::printHelpM() {
 	std::cout << "Available commands:\n"
-              << "  format\n"
               << "  ls\n"
               << "  cd <dir>\n"
               << "  mkdir <name>\n"
@@ -33,10 +32,10 @@ bool System::chmodFileM(const std::string& fileName, int newPermissions) {
 		return false;
 	}
 
-	std::string searchFile = std::to_string(currentDir) + "F_" + fileName;
+	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
 	int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
-		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
+		std::cerr << "\tError: File '" << fileName << "' not found in the directory(index).\n";
 		return false;
 	}
 	FileEntry* file = metaDataTable[fileIndex];
@@ -60,7 +59,6 @@ bool System::chmodFileM(const std::string& fileName, int newPermissions) {
     }
 	std::cout << "Successfully updated the permissions.\n";
 	disk.close();
-	delete file;
 	return true;
 }
 
@@ -71,7 +69,7 @@ bool System::chownM(const std::string& fileName, std::string changeOwnership) {
 		return false;
 	}
 
-	std::string searchFile = std::to_string(currentDir) + "F_" + fileName;
+	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
 	int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
@@ -89,10 +87,20 @@ bool System::chownM(const std::string& fileName, std::string changeOwnership) {
 
 	int colonPos = changeOwnership.find(":");
 	int owner_id = std::stoi(changeOwnership.substr(0, colonPos));
-	int group_id = std::stoi(changeOwnership.substr(colonPos + 1));
+	if (changeOwnership.substr(colonPos + 1) == "")	file->group_id = 0;
+	else {
+		int group_id = std::stoi(changeOwnership.substr(colonPos + 1));
+		file->group_id = group_id;
+	}
 	file->modified_at = std::time(nullptr);
 	file->owner_id = owner_id;
-	file->group_id = group_id;
+	
+	Entries->removeFileEntry(searchFile);
+	searchFile = std::to_string(owner_id) + std::to_string(0) + "F_" + fileName;
+	Entries->insertFileEntry(searchFile, fileIndex);
+	strncpy(file->fileName, searchFile.c_str(), FILE_NAME_LENGTH - 1);
+	file->fileName[FILE_NAME_LENGTH - 1] = '\0';
+
 	int save = saveDirectoryTable(disk, fileIndex);
 	if (save == 0) {
 		std::cerr << "Error: Could not update the permissions.\n";
@@ -100,7 +108,6 @@ bool System::chownM(const std::string& fileName, std::string changeOwnership) {
     }
 	std::cout << "Successfully updated the permissions.\n";
 	disk.close();
-	delete file;
 	return true;
 }
 
@@ -111,7 +118,7 @@ bool System::chgrpCommand(const std::string& fileName, uint32_t new_group_id) {
 		return false;
 	}
 
-	std::string searchFile = std::to_string(currentDir) + "F_" + fileName;
+	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
 	int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
@@ -136,7 +143,7 @@ bool System::chgrpCommand(const std::string& fileName, uint32_t new_group_id) {
     }
 	std::cout << "Successfully updated the permissions.\n";
 	disk.close();
-	delete file;
+
 	return true;
 }
 
@@ -168,8 +175,9 @@ void System::loginM(const std::string& username, const std::string& password) {
 		std::cout << "Login successful! Welcome, " << username << ".\n";
 		return;
 	}
+	int passwordHashed = hashFileName(password);
 	for (const auto& entry : userDatabase) {
-		if (entry->userName == username && entry->password == hashFileName(password)) {
+		if (entry->userName == username && entry->password == passwordHashed) {
 			user = *entry;
 			currentDir = 0;
 			std::cout << "Login successful! Welcome, " << username << ".\n";

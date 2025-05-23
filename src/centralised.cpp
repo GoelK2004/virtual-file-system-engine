@@ -70,6 +70,7 @@ void System::freeBitMapBlocks(std::fstream &disk, const std::vector<int> &blocks
 // MetadataManager Entries = MetadataManager(ORDER);
 
 void System::loadDirectoryTable(std::fstream &disk){
+	disk.clear();
 	for (int i = 0; i < ROOT_DIR_BLOCKS; i++) {
 		char buffer[BLOCK_SIZE];
 		disk.seekg((ROOT_DIR_START + i) * BLOCK_SIZE, std::ios::beg);
@@ -81,8 +82,13 @@ void System::loadDirectoryTable(std::fstream &disk){
 			if (offset + sizeof(SerializableFileEntry) <= BLOCK_SIZE) {
 				memcpy(&entry, buffer + offset, sizeof(SerializableFileEntry));
 				FileEntry* toBeSaved = new FileEntry(entry);
-				if (toBeSaved->fileName[0] != '\0')
+				if (toBeSaved->fileName[0] != '\0') {
 					metaDataTable.push_back(toBeSaved);
+					int index = Entries->getFile(toBeSaved->fileName);
+					if (index != -1 && index != static_cast<int>(metaDataTable.size()) - 1) {
+						Entries->updateIdx(toBeSaved->fileName, metaDataTable.size() - 1);
+					}
+				}
 			}
 		}
 	}
@@ -108,7 +114,7 @@ int System::saveDirectoryTable(std::fstream &disk, int index){
 int System::saveDirectoryTableEntire(std::fstream &disk){
 	int entryIndex = 0;
 	int totalEntries = metaDataTable.size();
-	for (int i = 0; i < ROOT_DIR_BLOCKS; i++) {
+	for (int i = 0; i < ROOT_DIR_BLOCKS && entryIndex < totalEntries; i++) {
 		char buffer[BLOCK_SIZE] = {0};
 
 		for (int j = 0; j < (ORDER - 1) && entryIndex < totalEntries; j++) {

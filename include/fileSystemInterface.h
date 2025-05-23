@@ -49,4 +49,8 @@ class FileSystemInterface {
 	
 		// File Tree
 		virtual void tree(const std::string& path = "/", int depth = 0, const std::string& prefix = "") = 0;
+		
+		// LOGS
+		virtual void show() = 0;
+		virtual void bTree() = 0;
 };

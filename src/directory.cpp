@@ -97,9 +97,9 @@ bool System::changeDirectory(const std::string &dirName){
 			return false;
 		}
 		for (const auto &entry : metaDataTable) {
-			if (entry->dirID == currentDir && entry->isDirectory) {
+			if (entry->dirID == currentDir && entry->isDirectory && entry->owner_id == user.user_id) {
 				currentDir = entry->parentIndex;
-				return false;
+				return true;
 			}
 		}
 	}

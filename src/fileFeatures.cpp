@@ -20,7 +20,7 @@ std::string permissionToString(FileEntry* entry) {
 }
 int setAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute) {
 	std::string file = std::to_string(fs.currentDir) + "F_" + fileName;
-	int searchFileIndex = fs.Entries->getFileEntry(file);
+	int searchFileIndex = fs.Entries->getFile(file);
 	if (searchFileIndex == -1) {
 		std::cerr << "\tError: File not found.\n";
 		return 0;
@@ -39,7 +39,7 @@ int setAttributes(System& fs, std::fstream& disk, const std::string& fileName, i
 }
 int clearAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute) {
 	std::string file = std::to_string(fs.currentDir) + "F_" + fileName;
-	int searchFileIndex = fs.Entries->getFileEntry(file);
+	int searchFileIndex = fs.Entries->getFile(file);
 	if (searchFileIndex == -1) {
 		std::cerr << "\tError: File not found.\n";
 		return 0;
@@ -79,10 +79,11 @@ std::string getAttributeString(const FileEntry* file) {
 	return attributes;
 }
 void renameFile(System& fs, FileEntry* file, const std::string& newName) {
-	std::string newFileName = std::to_string(fs.currentDir) + "F_" + newName;
+	std::string newFileName = std::to_string(fs.user.user_id) + std::to_string(fs.currentDir) + "F_" + newName;
 	if (helpers::isValidFileName(newFileName)){
 		strncpy(file->fileName, newFileName.c_str(), FILE_NAME_LENGTH - 1);
 		file->fileName[FILE_NAME_LENGTH - 1] = '\0';
+		file->modified_at = std::time(nullptr);
 		std::cout << "Successfully renamed file.\n";
 	} else {
 		std::cerr << "Error: Invalid file name\n";

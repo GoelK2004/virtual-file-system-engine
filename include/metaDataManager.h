@@ -19,9 +19,9 @@ public:
         return key;
     }
 
-    int getFileEntry(const std::string& fileName) {
+    bool updateIdx(const std::string& fileName, int idx) {
         int key = hashFileName(fileName);
-        return bptree.search(key);
+        return bptree.update(key, idx);
     }
 
     int getFile(const std::string& fileName) {
@@ -43,8 +43,8 @@ public:
         bptree.printTree();
     }
 
-    void loadBPlusTree(std::fstream& disk) {
-        bptree.loadBPlusTree(disk);
+    bool loadBPlusTree(std::fstream& disk) {
+        return bptree.loadBPlusTree(disk);
     }
 
     void saveBPlusTree(std::fstream& disk) {

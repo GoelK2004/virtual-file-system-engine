@@ -51,6 +51,9 @@ public:
 	void showGroups();
 	void tree(const std::string& path = "/", int depth = 0, const std::string& prefix = "");
 
+	// LOGS
+	void bTree();
+
 };
 
 #endif

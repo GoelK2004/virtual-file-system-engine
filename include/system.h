@@ -92,7 +92,7 @@ private:
 	bool deleteDataFile(const std::string &fileName, const bool check = false, uint64_t timestamp = 0);
 	bool deleteDataDir(const std::string &fileName, const bool check = false, uint64_t timestamp = 0);
 	bool createFiles(const std::string& fileName, const int& fileSize = BLOCK_SIZE, uint16_t permissions = 0644, const bool check = false, uint64_t timestamp = 0);
-	bool renameDir(const std::string &fileName, const std::string &newName, const bool check = false, uint64_t timestamp = 0);
+	bool renameFiles(const std::string &fileName, const std::string &newName, const bool check = false, uint64_t timestamp = 0);
 	void list();
 	void fileMetadata(const std::string& fileName);
 
@@ -131,6 +131,10 @@ public:
 	void showUsers() override;
 	void showGroups() override;
 	void tree(const std::string& path = "/", int depth = 0, const std::string& prefix = "") override;
+
+	// LOGS
+	void show() override;
+	void bTree() override;
 };
 
 #endif

@@ -49,7 +49,7 @@ bool VFSManager::write(const std::string& path, const std::string& data) {
 }
 
 bool VFSManager::append(const std::string& path, const std::string& data) {
-    return isMounted() ? fs->write(path, data) : false;
+    return isMounted() ? fs->append(path, data) : false;
 }
 
 bool VFSManager::remove(const std::string& path) {
@@ -117,5 +117,10 @@ void VFSManager::showGroups() {
 }
 
 void VFSManager::tree(const std::string& path, int depth, const std::string& prefix) {
-    if (isMounted()) fs->tree(path, depth, prefix);
+    if (isMounted()) fs->tree();
+}
+
+// LOGS
+void VFSManager::bTree() {
+    if (isMounted()) fs->bTree();
 }

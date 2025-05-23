@@ -97,7 +97,8 @@ static void releaseWriteLock(FileEntry* file) {
 	} else {
 		file->readerCV.notify_all();
 	}
-	std::cout << "[Writer] released write lock for file: " << file->fileName << ".\n";
+	const char* str = file->fileName[0] == '\0' ? "[DELETED]" : file->fileName;
+	std::cout << "[Writer] released write lock for file: " << str << ".\n";
 }
 
 bool System::writeData(const std::string &fileName, const std::string &fileContent, bool append, const bool check, uint64_t timestamp) {
@@ -182,7 +183,9 @@ bool System::deleteDataFile(const std::string& fileName, const bool check, uint6
 	else {
 		journalManager->markCommitted(timestamp);
 	}
+	file->fileName[0] = '\0';
 	releaseWriteLock(file);
+	delete file;
 	
 	disk.close();
 	return true;
@@ -273,11 +276,11 @@ bool System::createFiles(const std::string& fileName, const int &fileSize, uint1
 	return true;
 }
 
-bool System::renameDir(const std::string &fileName, const std::string &newName, const bool check, uint64_t timestamp) {
+bool System::renameFiles(const std::string &fileName, const std::string &newName, const bool check, uint64_t timestamp) {
 	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
 	int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
-		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
+		std::cerr << "\tError: File '" << fileName << "' not found in the directory(index).\n";
 		return false;
 	}
 	FileEntry* file = metaDataTable[fileIndex];
@@ -285,6 +288,7 @@ bool System::renameDir(const std::string &fileName, const std::string &newName, 
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
 		return false;
 	}
+	std::cout << file->fileName << ' ' << file->owner_id << '\n'; // LOGS
 	if (!hasPermission(*file, user.user_id, user.group_id, PERMISSION_WRITE)){
 		std::cerr << "\tError: Write permission denied for the file '" << fileName << "'.\n";
 		return false;
@@ -297,6 +301,11 @@ bool System::renameDir(const std::string &fileName, const std::string &newName, 
 		time = journalManager->logOperation(OP_RENAME, searchFile, "", file->fileSize);
 	}
 	renameFile(*this, file, newName);
+	
+	Entries->removeFileEntry(searchFile);
+	searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + newName;
+	Entries->insertFileEntry(searchFile, fileIndex);
+	
 	if (!check)
 		journalManager->markCommitted(time);
 	else {
@@ -333,7 +342,8 @@ void System::fileMetadata(const std::string& filename) {
 			time_t modifiedTime = static_cast<time_t>(entry->modified_at);
 			std::tm* modifiedTimeInfo = std::localtime(&modifiedTime);
 			std::string name(entry->fileName);
-            std::cout << "Filename     : " << name.erase(0, 3) << "\n";
+			int pos = static_cast<int>(std::to_string(user.user_id).length() + std::to_string(currentDir).length()) + 2;
+            std::cout << "Filename     : " << name.substr(pos) << "\n";
             std::cout << "Size         : " << entry->fileSize << " bytes\n";
             std::cout << "Created At   : " << std::asctime(createdTimeInfo);
             std::cout << "Modified At  : " << std::asctime(modifiedTimeInfo);
@@ -342,12 +352,9 @@ void System::fileMetadata(const std::string& filename) {
             std::cout << "Ownder ID    : " << entry->owner_id << "\n";
             std::cout << "Group ID     : " << entry->group_id << "\n";
 			
-			delete createdTimeInfo;
-			delete modifiedTimeInfo;
             return;
         }
     }
 
     std::cout << "File not found in current directory.\n";
 }
-

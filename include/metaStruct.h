@@ -48,7 +48,7 @@ class BPlusTree {
 		int loadBPlusTree(std::fstream &disk);
 
 		void insert(int key, const int metaIndex);
-		int search(int key);
+		bool update(int key, int idx);
 		int searchFile(int key);
 		int searchDir(int key);
 		void remove(int key);

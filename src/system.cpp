@@ -12,7 +12,7 @@ System::System(const std::string& diskPath) {
 	} else {
 		load();
 	}
-	std::cout << "FileSystem initialized.\n";	
+	std::cout << "FileSystem initialized.\n";
 };  // Constructor for init
 
 System::~System() {
@@ -73,7 +73,7 @@ bool System::remove(const std::string& path) {
 }
 
 bool System::rename(const std::string& oldName, const std::string& newName) {
-	return renameDir(oldName, newName);
+	return renameFiles(oldName, newName);
 }
 
 bool System::mkdir(const std::string& path) {
@@ -130,4 +130,14 @@ void System::showGroups() {
 
 void System::tree(const std::string& path, int depth, const std::string& prefix) {
 	treeM(path, depth, prefix);
+}
+
+// LOGS
+void System::show() {
+	for (int i = 0; i <static_cast<int>(metaDataTable.size()); i++) {
+		std::cout << metaDataTable[i]->fileName << ' ' << metaDataTable[i]->owner_id << '\n';
+	}
+}
+void System::bTree() {
+	Entries->printMetadataTree();
 }
