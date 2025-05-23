@@ -288,7 +288,6 @@ bool System::renameFiles(const std::string &fileName, const std::string &newName
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
 		return false;
 	}
-	std::cout << file->fileName << ' ' << file->owner_id << '\n'; // LOGS
 	if (!hasPermission(*file, user.user_id, user.group_id, PERMISSION_WRITE)){
 		std::cerr << "\tError: Write permission denied for the file '" << fileName << "'.\n";
 		return false;
