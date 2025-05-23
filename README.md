@@ -79,7 +79,6 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 | `showUsers`   | Display user table |
 | `showGroups`  | Display group table |
 | `tree`        | Display directory hierarchy |
-| `format`      | Format and initialize the file system |
 | `exit`        | Exit file system |
 
 ---
