@@ -145,7 +145,6 @@ void System::formatFileSystem() {
 	initialiseFileEntries(*this);
 	initialiseUsers(*this);
 	journalManager->loadJournal();
-	journalManager->recoverUncommitedOperations();
 	
 	std::cout << "File system formatting completed successfully.\n";
     std::cout << "Disk layout:\n";
@@ -168,7 +167,6 @@ void System::loadFromDisk() {
 		exit(0);
 	}
 	loadDirectoryTable(disk);
-	Entries->printMetadataTree();
 	loadUsers(disk);
 	journalManager->loadJournal();
 	journalManager->recoverUncommitedOperations();
