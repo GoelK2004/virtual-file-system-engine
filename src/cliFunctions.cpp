@@ -2,6 +2,7 @@
 
 void System::printHelpM() {
 	std::cout << "Available commands:\n"
+              << "  help\n"
               << "  ls\n"
               << "  cd <dir>\n"
               << "  mkdir <name>\n"
