@@ -11,9 +11,9 @@ private:
     VFSManager* vfs;
 
 public:
-    CommandLineInterface(VFSManager* vfs);
-    void setVFS(VFSManager* vfs) {
-        this->vfs = vfs;
+    explicit CommandLineInterface(VFSManager* filesys);
+    void setVFS(VFSManager* vfsS) {
+        this->vfs = vfsS;
     }
 	void runCLI();
 };

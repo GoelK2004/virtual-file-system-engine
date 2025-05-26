@@ -31,7 +31,7 @@ std::vector<std::string> parseInput(const std::string& input) {
 	return tokens;
 }
 
-CommandLineInterface::CommandLineInterface(VFSManager* fileSystem) : vfs(fileSystem) {}
+CommandLineInterface::CommandLineInterface(VFSManager* filesys) : vfs(filesys) {}
 
 void CommandLineInterface::runCLI() {
 	std::string input;
@@ -56,9 +56,9 @@ void CommandLineInterface::runCLI() {
         else if (cmd == "write" && args.size() == 3)	vfs->write(args[1], args[2]);
         else if (cmd == "append" && args.size() == 3)	vfs->append(args[1], args[2]);
         else if (cmd == "read" && args.size() == 2)	vfs->read(args[1]);
-        else if (cmd == "rm" && args.size() == 2)	vfs->remove(args[1]);
-        else if (cmd == "rename" && args.size() == 3)	vfs->rename(args[1], args[2]);
-        else if (cmd == "stat" && args.size() == 2)	vfs->stat(args[1]);
+		else if (cmd == "rm" && args.size() == 2)	vfs->remove(args[1]);
+		else if (cmd == "rename" && args.size() == 3)	vfs->rename(args[1], args[2]);
+		else if (cmd == "stat" && args.size() == 2)	vfs->stat(args[1]);
 		else if (cmd == "chmod" && args.size() == 3)	vfs->chmod(args[1], std::stoi(args[2], nullptr, 8));
 		else if (cmd == "chown" && args.size() == 3)	vfs->chown(args[1], args[2]);
 		else if (cmd == "chgrp" && args.size() == 3)	vfs->chgrp(args[1], std::stoul(args[2]));
@@ -70,7 +70,7 @@ void CommandLineInterface::runCLI() {
 		else if (cmd == "showgrp" && args.size() == 1)	vfs->showGroups();
 		else if (cmd == "tree" && args.size() == 1)	vfs->tree();
 		else if (cmd == "btree" && args.size() == 1)	vfs->bTree();
-        else if (cmd == "exit") {
+		else if (cmd == "exit") {
             std::cout << "Exiting file system.\n";
             break;
         } else	std::cout << "Unknown command. Type 'help' for available commands.\n";

@@ -32,8 +32,8 @@ bool System::chmodFileM(const std::string& fileName, int newPermissions) {
 		return false;
 	}
 
-	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
-	int fileIndex = Entries->getFile(searchFile);
+	const std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
+	const int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory(index).\n";
 		return false;
@@ -62,7 +62,7 @@ bool System::chmodFileM(const std::string& fileName, int newPermissions) {
 	return true;
 }
 
-bool System::chownM(const std::string& fileName, std::string changeOwnership) {
+bool System::chownM(const std::string& fileName, const std::string& changeOwnership) {
 	std::fstream disk(DISK_PATH, std::ios::binary | std::ios::out | std::ios::in);
 	if (!disk.is_open()) {
 		std::cerr << "Error: Disk file is not open for writing.(writing to '" << fileName << "')\n";
@@ -85,7 +85,7 @@ bool System::chownM(const std::string& fileName, std::string changeOwnership) {
 		return false;
 	}
 
-	int colonPos = changeOwnership.find(":");
+	int colonPos = changeOwnership.find(':');
 	int owner_id = std::stoi(changeOwnership.substr(0, colonPos));
 	if (changeOwnership.substr(colonPos + 1) == "")	file->group_id = 0;
 	else {
@@ -118,8 +118,8 @@ bool System::chgrpCommand(const std::string& fileName, uint32_t new_group_id) {
 		return false;
 	}
 
-	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
-	int fileIndex = Entries->getFile(searchFile);
+	const std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "F_" + fileName;
+	const int fileIndex = Entries->getFile(searchFile);
 	if (fileIndex == -1) {
 		std::cerr << "\tError: File '" << fileName << "' not found in the directory.\n";
 		return false;
@@ -148,10 +148,12 @@ bool System::chgrpCommand(const std::string& fileName, uint32_t new_group_id) {
 }
 
 void System::whoamiM() const {
-    auto it_user = userTable.find(user.user_id);
-    auto it_group = groupTable.find(user.group_id);
-    if (it_user != userTable.end())
-        std::cout << "User: " << it_user->second << "\n";
+    const auto it_user = userTable.find(user.user_id);
+    const auto it_group = groupTable.find(user.group_id);
+    if (it_user != userTable.end())  {
+	    std::cout << "User: " << it_user->second << "\n";
+	    std::cout << "User ID: " << it_user->first << "\n";
+    }
     else
 		std::cout << "Unknown user ID: " << user.user_id << "\n";
 	if (it_group != groupTable.end())
@@ -175,7 +177,7 @@ void System::loginM(const std::string& username, const std::string& password) {
 		std::cout << "Login successful! Welcome, " << username << ".\n";
 		return;
 	}
-	int passwordHashed = hashFileName(password);
+	const int passwordHashed = hashFileName(password);
 	for (const auto& entry : userDatabase) {
 		if (entry->userName == username && entry->password == passwordHashed) {
 			user = *entry;
@@ -195,15 +197,15 @@ void System::userAddM(const std::string& userName, const std::string& password, 
 		}
 	}
 	
-	User* user = new User();
-	strncpy(user->userName, userName.c_str(), USER_NAME_LENGTH);
-	user->userName[USER_NAME_LENGTH - 1] = '\0';
-	user->password = hashFileName(password);
-	user->user_id = 1000 + (++totalUsers);
-	user->group_id = group_id;
-	userDatabase.push_back(user);
+	User* userN = new User();
+	strncpy(userN->userName, userName.c_str(), USER_NAME_LENGTH);
+	userN->userName[USER_NAME_LENGTH - 1] = '\0';
+	userN->password = hashFileName(password);
+	userN->user_id = 1000 + (++totalUsers);
+	userN->group_id = group_id;
+	userDatabase.push_back(userN);
 
-	userTable[user->user_id] = userName;
+	userTable[userN->user_id] = userName;
 	if (group_id != -1U){
 		auto group = groupTable.find(group_id);
 		if (group == groupTable.end()) {
@@ -212,16 +214,16 @@ void System::userAddM(const std::string& userName, const std::string& password, 
 			totalGroups++;
 		}
 	}
-	std::cout << "User added: " << userName << " (UID: " << user->user_id << ", GID: " << user->group_id << ")\n";
+	std::cout << "User added: " << userName << " (UID: " << userN->user_id << ", GID: " << userN->group_id << ")\n";
 }
 
 void System::showUsersM() {
-	for (auto user : userTable) {
-		std::cout << user.first << ' ' << user.second << '\n';
+	for (const auto& userP : userTable) {
+		std::cout << userP.first << ' ' << userP.second << '\n';
 	}
 }
 void System::showGroupsM() {
-	for (auto group : groupTable) {
+	for (const auto& group : groupTable) {
 		std::cout << group.first << ' ' << group.second << '\n';
 	}
 }
@@ -275,9 +277,9 @@ void System::treeM(const std::string& path, int depth, const std::string& prefix
 				<< '\n';
 		
 		if (entry->isDirectory) {
-			std::string name(entry->fileName);
-			int totalPos = static_cast<int>(std::to_string(user.user_id).length() + std::to_string(entry->parentIndex).length()) + 2;
-			name = name.substr(totalPos);
+			// std::string name(entry->fileName);
+			// int totalPos = static_cast<int>(std::to_string(user.user_id).length() + std::to_string(entry->parentIndex).length()) + 2;
+			// name = name.substr(totalPos);
 			std::string newPath = path + (path.back() == '/' ? "" : "/") + name;
 			treeM(newPath, depth + 1, prefix + (lastEntry ? "    " : "|   "));
 		}

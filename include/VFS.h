@@ -30,7 +30,7 @@ public:
 	// void format();
 	// void load();
 	bool create(const std::string& path);
-	bool create(const std::string& path, const int& filSize);
+	bool create(const std::string& path, const int& fileSize);
 	std::string read(const std::string& path);
 	bool write(const std::string& path, const std::string& data);
 	bool append(const std::string& path, const std::string& data);

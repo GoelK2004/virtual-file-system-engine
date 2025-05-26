@@ -62,7 +62,7 @@ uint64_t JournalManager::logOperation(const std::string& op, const std::string& 
 }
 void JournalManager::markCommitted(uint64_t timestamp) {
 	std::lock_guard<std::mutex> lock(journalMutex);
-	int low = 0, high = journals.size() - 1, mid;
+	int low = 0, high = static_cast<int>(journals.size()) - 1, mid;
 	while (low <= high) {
 		mid = (low + high) / 2;
 		if (journals[mid].timestamp == timestamp) {

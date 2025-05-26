@@ -5,11 +5,10 @@ bool hasPermission(const FileEntry& file, uint32_t user_id, uint32_t group_id, i
 		return ((file.permissions >> 6) & permission_type);
 	else if (group_id == file.group_id)
 		return ((file.permissions >> 3) & permission_type);
-	else
-		return ((file.permissions >> 0) & permission_type);
+	return ((file.permissions >> 0) & permission_type);
 }
 std::string permissionToString(FileEntry* entry) {
-	std::string permission = "";
+	std::string permission;
 	const std::string symbol[3] = {"r", "w", "x"};
 	for (int i = 6; i >= 0; i -= 3) {
 		for (int j = 0; j < 3; j++) {

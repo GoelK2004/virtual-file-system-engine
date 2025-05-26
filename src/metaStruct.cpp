@@ -282,7 +282,7 @@ void BPlusTree::insert(int key, const int metaIndex) {
 
 bool BPlusTree::update(int key, int idx) {
 	BPlusTreeNode* leaf = findLeafNode(key);
-	int low = 0, high = leaf->keys.size() - 1, mid = -1;
+	int low = 0, high = leaf->keys.size() - 1, mid;
 	while (low <= high){
 		mid = (low + high) / 2;
 		if (leaf->keys[mid] == key) {
@@ -472,7 +472,7 @@ void BPlusTree::mergeLeafNodes(BPlusTreeNode* leaf) {
 void BPlusTree::remove(int key) {
 	BPlusTreeNode* leaf = findLeafNode(key);
 	if (!leaf)	return;
-	int low = 0, high = leaf->keys.size() - 1, mid = -1, index = -1;
+	int low = 0, high = leaf->keys.size() - 1, mid, index = -1;
 	while (low <= high){
 		mid = (low + high) / 2;
 		if (leaf->keys[mid] == key)	{
@@ -523,7 +523,7 @@ void BPlusTree::printTree() {
 			q.pop();
 			if (node->isLeaf) {
 				std::cout << "[Leaf: ";
-				for (int i = 0; i < static_cast<int>(node->keys.size()); i++) std::cout << node->keys[i] << ':' << node->values[i] << ' ';
+				for (int j = 0; j < static_cast<int>(node->keys.size()); j++) std::cout << node->keys[j] << ':' << node->values[j] << ' ';
 				std::cout << "]  ";
 			}
 			else {
@@ -543,7 +543,7 @@ void BPlusTree::printTree() {
 
 int BPlusTree::searchFile(int key) {
 	BPlusTreeNode* leaf = findLeafNode(key);
-	int low = 0, high = leaf->keys.size() - 1, mid = -1;
+	int low = 0, high = leaf->keys.size() - 1, mid;
 	while (low <= high){
 		mid = (low + high) / 2;
 		if (leaf->keys[mid] == key)	return leaf->values[mid];
@@ -554,7 +554,7 @@ int BPlusTree::searchFile(int key) {
 }
 int BPlusTree::searchDir(int key) {
 	BPlusTreeNode* leaf = findLeafNode(key);
-	int low = 0, high = leaf->keys.size() - 1, mid = -1;
+	int low = 0, high = leaf->keys.size() - 1, mid;
 	while (low <= high){
 		mid = (low + high) / 2;
 		if (leaf->keys[mid] == key)	return leaf->values[mid];

@@ -48,17 +48,17 @@ struct FileEntry{
 	std::condition_variable readerCV;
     std::condition_variable writerCV;
 
-	FileEntry() : fileSize(0), numExtents(0), extents(), isDirectory(false), parentIndex(-1), created_at(0), modified_at(0), accessed_at(0),
+	FileEntry() : fileSize(0), numExtents(0), extents(), isDirectory(false), parentIndex(-1), dirID(-1), created_at(0), modified_at(0), accessed_at(0),
 		owner_id(-1), group_id(-1), permissions(0640), attributes(0) {
 			fileName[0] = '\0';
 		}
-	FileEntry(const std::string &name) : fileSize(0), numExtents(0), isDirectory(false), parentIndex(-1), created_at(0), modified_at(0), accessed_at(0),
+	FileEntry(const std::string &name) : fileSize(0), numExtents(0), isDirectory(false), parentIndex(-1), dirID(-1), created_at(0), modified_at(0), accessed_at(0),
 		owner_id(-1), group_id(-1), permissions(0640), attributes(0) {
 			strncpy(fileName, name.c_str(), sizeof(fileName));
 			fileName[sizeof(fileName) - 1] = '\0';
 			for (int i = 0; i < MAX_EXTENTS; ++i)	extents[i] = Extent();
 		}
-	FileEntry(const SerializableFileEntry& file);
+	explicit FileEntry(const SerializableFileEntry& file);
 };
 struct SerializableFileEntry {
 	char fileName[FILE_NAME_LENGTH];
@@ -76,11 +76,11 @@ struct SerializableFileEntry {
 	int dirID;
 	Extent extents[MAX_EXTENTS];
 
-	SerializableFileEntry() : size(0), created_at(0), modified_at(0), accessed_at(0), owner_id(-1), group_id(-1), permissions(0640), attributes(0), extentCount(0), isDirectory(false), parentIndex(-1), extents() {
+	SerializableFileEntry() : size(0), created_at(0), modified_at(0), accessed_at(0), owner_id(-1), group_id(-1), permissions(0640), attributes(0), extentCount(0), isDirectory(false), parentIndex(-1), dirID(-1), extents() {
 		fileName[0] = '\0';
 	};
 
-	SerializableFileEntry(const FileEntry& file);
+	explicit SerializableFileEntry(const FileEntry& file);
 };
 
 struct User {

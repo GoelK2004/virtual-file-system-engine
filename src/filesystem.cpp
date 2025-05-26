@@ -15,11 +15,11 @@ void createFile(System& fs, std::fstream &disk, const std::string &fileName, con
 		std::cerr << "\tError: Try creating file again.\n";
 		return;
 	}
-	int size = allocatedBlocks.size();
+	int size = static_cast<int>(allocatedBlocks.size());
 	Superblock originalSuperblock = fs.superblock;
 	int extentIndex = 0;
 	for (int i = 0; i < size; i++){
-		if (extentIndex > MAX_EXTENTS){
+		if (extentIndex >= MAX_EXTENTS){
 			std::cerr << "\tError: Exceeded max extents while creating file.\n";
 			std::cerr << "\tAttempting rollback\n";
 			fs.rollbackMetadataIndex(disk, fs.superblock, fs.metaIndex - 1, allocatedBlocks);
@@ -98,7 +98,7 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 		int bytesWritten = file->fileSize % BLOCK_SIZE;
 		int remaining = (bytesWritten == 0) ? 0 : BLOCK_SIZE - bytesWritten;
 		int actualBytesWritten = 0;
-		int requiredBlocks = (fileContent.size() - remaining + BLOCK_SIZE - 1)/BLOCK_SIZE;
+		int requiredBlocks = (static_cast<int>(fileContent.size()) - remaining + BLOCK_SIZE - 1)/BLOCK_SIZE;
 		if (fs.superblock.freeBlocks < requiredBlocks){
 			std::cerr << "\tError: Not enough storage to append data.\n";
 			return;
@@ -121,7 +121,7 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 		}
 		if (actualBytesWritten != static_cast<int>(fileContent.size())) {
 			std::vector<int> newlyAllocatedBlocks = fs.allocateBitMapBlocks(disk, requiredBlocks);
-			int size = newlyAllocatedBlocks.size(), extentIndex = file->numExtents;
+			int size = static_cast<int>(newlyAllocatedBlocks.size()), extentIndex = file->numExtents;
 			for (int i = 0; i < size; i++){
 				if (extentIndex > MAX_EXTENTS){
 					std::cerr << "\tError: Exceeded max extents while creating file.\n";
@@ -257,7 +257,7 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 			std::cerr << "Error: No parent directory found.\n";
 			return;
 		}
-		if (parentDir && parentDir->fileSize >= file->fileSize)
+		if (parentDir->fileSize >= file->fileSize)
 			parentDir->fileSize -= file->fileSize;
 	}
 	fs.user.totalSize -= file->fileSize;

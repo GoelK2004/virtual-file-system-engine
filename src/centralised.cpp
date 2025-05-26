@@ -6,13 +6,13 @@
 void System::loadBitMap(std::fstream &disk){
 	std::vector<char> buffer(TOTAL_BLOCKS / 8, 0);
 	disk.seekg(BITMAP_START * BLOCK_SIZE, std::ios::beg);
-	disk.read(buffer.data(), buffer.size());
+	disk.read(buffer.data(), static_cast<int>(buffer.size()));
 	if (disk.fail())	return;
 	for (size_t i = 0; i < TOTAL_BLOCKS; i++)	FATTABLE[i] = (buffer[i / 8] >> (7 - (i % 8))) & 1;
 }
 int System::saveBitMap(std::fstream &disk){
 	std::vector<char> buffer(TOTAL_BLOCKS / 8, 0);
-	for (size_t i = 0; i < TOTAL_BLOCKS; i++){
+	for (int i = 0; i < TOTAL_BLOCKS; i++){
 		buffer[i / 8] |= FATTABLE[i] << (7 - (i % 8));
 	}
 
@@ -33,15 +33,15 @@ std::vector<int> System::allocateBitMapBlocks(std::fstream &disk, int numBlocks)
 		if (!FATTABLE[i]){
 			allocatedBlocks.push_back(i);
 			if (static_cast<int>(allocatedBlocks.size()) == numBlocks){
-				for (int block : allocatedBlocks)	FATTABLE[block] = true;
+				for (const int block : allocatedBlocks)	FATTABLE[block] = true;
 				std::cerr << "\tAllocated all requested blocks.\n";
 				int save = saveBitMap(disk);
 				if (save == 0){
-					for (int block : allocatedBlocks)	FATTABLE[block] = false;
+					for (const int block : allocatedBlocks)	FATTABLE[block] = false;
 					return {};
 				}
-				std::vector<char> buffer(BLOCK_SIZE, 0);
-				for (int block : allocatedBlocks) {
+				const std::vector<char> buffer(BLOCK_SIZE, 0);
+				for (const int block : allocatedBlocks) {
 					disk.seekp(block * BLOCK_SIZE, std::ios::beg);
 					disk.write(buffer.data(), BLOCK_SIZE);
 				}
@@ -50,7 +50,7 @@ std::vector<int> System::allocateBitMapBlocks(std::fstream &disk, int numBlocks)
 		}
 	}
 	if (static_cast<int>(allocatedBlocks.size()) != numBlocks){
-		for (int block : allocatedBlocks)	FATTABLE[block] = false;
+		for (const int block : allocatedBlocks)	FATTABLE[block] = false;
 		std::cerr << "\tError: Cannot allocate all requested blocks.\n";
 		return {};
 	}
@@ -58,8 +58,8 @@ std::vector<int> System::allocateBitMapBlocks(std::fstream &disk, int numBlocks)
 }
 void System::freeBitMapBlocks(std::fstream &disk, const std::vector<int> &blocks){
 	if (blocks.empty())	return;
-	for (int block : blocks){
-		if (block >= 0 && block < static_cast<int>(FATTABLE.size()))	FATTABLE[block] = 0;
+	for (const int block : blocks){
+		if (block >= 0 && block < static_cast<int>(FATTABLE.size()))	FATTABLE[block] = false;
 	}
 	saveBitMap(disk);
 	std::cout << "\tBitmap blocks freed.\n";
@@ -98,9 +98,9 @@ int System::saveDirectoryTable(std::fstream &disk, int index){
 		std::cerr << "\tError: Index out of bounds while saving FileEntry/rootDirectory to disk.\n";
 		return 0;
 	}
-	int blocksPassed = index / (ORDER - 1); // Since each block record stores only ORDER entries
-	int blockToModify = index % (ORDER - 1);
-	SerializableFileEntry entryToSave = SerializableFileEntry(*metaDataTable[index]);
+	const int blocksPassed = index / (ORDER - 1); // Since each block record stores only ORDER entries
+	const int blockToModify = index % (ORDER - 1);
+	auto entryToSave = SerializableFileEntry(*metaDataTable[index]);
 	disk.seekp((ROOT_DIR_START + blocksPassed) * BLOCK_SIZE + (blockToModify * sizeof(FileEntry)), std::ios::beg);
 	disk.write(reinterpret_cast<char*>(&entryToSave), sizeof(SerializableFileEntry));
 	if (disk.fail()){
@@ -113,7 +113,7 @@ int System::saveDirectoryTable(std::fstream &disk, int index){
 }
 int System::saveDirectoryTableEntire(std::fstream &disk){
 	int entryIndex = 0;
-	int totalEntries = metaDataTable.size();
+	const int totalEntries = static_cast<int>(metaDataTable.size());
 	for (int i = 0; i < ROOT_DIR_BLOCKS && entryIndex < totalEntries; i++) {
 		char buffer[BLOCK_SIZE] = {0};
 
@@ -163,9 +163,9 @@ int System::saveUsers(std::fstream& disk) {
 	disk.write(reinterpret_cast<char*>(&totalUsers), sizeof(int));
 	for (int i = 0; i < totalUsers; i++){
 		if (!userDatabase[i])	continue;
-		User user = *userDatabase[i];
+		User userTS = *userDatabase[i];
 		disk.seekp(SUPER_BLOCK_START + sizeof(Superblock) + sizeof(int) + (sizeof(User) * i), std::ios::beg);
-		disk.write(reinterpret_cast<char*>(&user), sizeof(User));
+		disk.write(reinterpret_cast<char*>(&userTS), sizeof(User));
 		if (disk.fail()){
 			std::cerr << "\tError: Failed to save user details at index " << i << ".\n";
 			disk.clear();

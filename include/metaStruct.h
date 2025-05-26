@@ -41,7 +41,7 @@ class BPlusTree {
 		void handleInternalUnderflow(BPlusTreeNode* node);
 	
 	public:
-		BPlusTree(int order);
+		explicit BPlusTree(int order);
 		// ~BPlusTree();
 	
 		int saveBPlusTree(std::fstream &disk);

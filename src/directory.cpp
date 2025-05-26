@@ -2,7 +2,7 @@
 
 bool System::createDirectory(const std::string &directoryName){
 	std::cout << "Creating directory '" << directoryName << "'\n";
-	std::string savedDir = std::to_string(user.user_id) + std::to_string(currentDir) + "D_" + directoryName;
+	const std::string savedDir = std::to_string(user.user_id) + std::to_string(currentDir) + "D_" + directoryName;
 	int dirID = Entries->getDir(savedDir);
 	if (dirID != -1) {
 		FileEntry* dir = metaDataTable[dirID];
@@ -17,7 +17,7 @@ bool System::createDirectory(const std::string &directoryName){
 		return false;
 	}
 			
-	FileEntry* newDir = new FileEntry();
+	auto* newDir = new FileEntry();
 	strncpy(newDir->fileName, savedDir.c_str(), sizeof(newDir->fileName) - 1);
 	newDir->fileSize = 0;
 	newDir->isDirectory = true;
@@ -44,18 +44,18 @@ FileEntry* System::resolvePath(std::fstream &disk, const std::string &path){
 		cleanPath.pop_back();
 	}
 
-	if (cleanPath.empty())	return 0;
+	if (cleanPath.empty())	return nullptr;
 
 	int currentIndex = 0;
 	std::istringstream ss(cleanPath);
 	std::string token;
-	FileEntry* dir;
+	FileEntry* dir = nullptr;
 
 	while (getline(ss, token, '/')){
 		if (token.empty())	continue;
 
 		std::string searchDir = std::to_string(user.user_id) + std::to_string(currentIndex) + "D_" + token;
-		int dirIndex = Entries->getDir(searchDir);
+		const int dirIndex = Entries->getDir(searchDir);
 		if (dirIndex == -1) {
 			std::cerr << "Error: Path " << path << " could not be resolved(dir not found).\n";
 			return nullptr;
@@ -73,10 +73,10 @@ FileEntry* System::resolvePath(std::fstream &disk, const std::string &path){
 
 std::string System::createPathM() {
 	std::string path;
-	std::string currentUser(user.userName);
+	const std::string currentUser(user.userName);
 	int scopedDir = currentDir;
 	while (scopedDir != 0) {
-		for (auto& file : metaDataTable) {
+		for (const auto& file : metaDataTable) {
 			if (file->dirID == scopedDir && file->owner_id == user.user_id) {
 				std::string name(file->fileName);
 				path = "/" + name.erase(0, 2 + static_cast<int>(std::to_string(currentDir).length() + std::to_string(user.user_id).length())) + path;
@@ -85,7 +85,7 @@ std::string System::createPathM() {
 			}
 		}
 	}
-	if (path == "")
+	if (path.empty())
 		path = "/";
 	return "(" + currentUser + ") " + path;
 }
@@ -103,13 +103,13 @@ bool System::changeDirectory(const std::string &dirName){
 			}
 		}
 	}
-	std::string searchDir = std::to_string(user.user_id) + std::to_string(currentDir) + "D_" + dirName;
-	int dirIndex = Entries->getDir(searchDir);
+	const std::string searchDir = std::to_string(user.user_id) + std::to_string(currentDir) + "D_" + dirName;
+	const int dirIndex = Entries->getDir(searchDir);
 	if (dirIndex == -1) {
 		std::cerr << "Error: Directory '" << dirName << "' not found(dir not found).\n";
 		return false;
 	}
-	FileEntry* dir = metaDataTable[dirIndex];
+	const FileEntry* dir = metaDataTable[dirIndex];
 	if (!dir || (dir->owner_id != user.user_id)) {
 		std::cerr << "Error: Directory '" << dirName << "' not found.\n";
 		return false;

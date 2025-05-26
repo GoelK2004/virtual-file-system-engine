@@ -9,7 +9,7 @@ void initialiseDisk(const std::string& diskName){
 	}
 	
 	std::vector<char> emptyBlock(DISK_SIZE, 0);
-	disk.write(reinterpret_cast<char*>(emptyBlock.data()), emptyBlock.size());
+	disk.write(reinterpret_cast<char*>(emptyBlock.data()), static_cast<int>(emptyBlock.size()));
 	if (!disk.good()){
 		std::cerr << "Error: Cannot create the disk file.\n";
 		return;

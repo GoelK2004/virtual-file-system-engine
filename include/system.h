@@ -15,7 +15,7 @@
 class JournalManager;
 class MetadataManager;
 
-class System : public FileSystemInterface {
+class System final : public FileSystemInterface {
 private:
 	std::string DISK_PATH;
 	std::vector<bool> FATTABLE;
@@ -68,9 +68,9 @@ private:
 	std::string createPathM();
 
 
-	void printHelpM();
+	static void printHelpM();
 	bool chmodFileM(const std::string& fileName, int newPermissions);
-	bool chownM(const std::string& fileName, std::string changeOwnership);
+	bool chownM(const std::string& fileName, const std::string& changeOwnership);
 	bool chgrpCommand(const std::string& fileName, uint32_t new_group_id);
 	void whoamiM() const;
 	void loginM(const std::string& username, const std::string& password);
@@ -103,8 +103,8 @@ public:
 	JournalManager* journalManager;
 	MetadataManager* Entries;
 
-    System(const std::string& diskPath);
-    ~System(); // Destructor for cleanup
+    explicit System(const std::string& diskPath);
+    ~System();
 	
 	std::string createPath() override;
 	void printHelp() override;

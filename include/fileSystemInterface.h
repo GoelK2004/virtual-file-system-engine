@@ -6,7 +6,7 @@
 
 class FileSystemInterface {
 	public:
-		virtual ~FileSystemInterface() {}
+		virtual ~FileSystemInterface() = default;
 
 		virtual std::string createPath() = 0;
 		virtual void printHelp() = 0;
@@ -43,12 +43,12 @@ class FileSystemInterface {
 		// User Utilities
 		virtual void whoami() const = 0;
 		virtual void login(const std::string& user_id, const std::string& password) = 0;
-		virtual void userAdd(const std::string& userName, const std::string& password, uint32_t group_id = -1) = 0;
+		virtual void userAdd(const std::string& userName, const std::string& password, uint32_t group_id) = 0;
 		virtual void showUsers() = 0;
 		virtual void showGroups() = 0;
 	
 		// File Tree
-		virtual void tree(const std::string& path = "/", int depth = 0, const std::string& prefix = "") = 0;
+		virtual void tree(const std::string& path, int depth, const std::string& prefix) = 0;
 		
 		// LOGS
 		virtual void show() = 0;

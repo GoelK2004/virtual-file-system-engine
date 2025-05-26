@@ -20,9 +20,9 @@
 #define TOTAL_BLOCKS (DISK_SIZE / BLOCK_SIZE)
 #define SUPER_BLOCKS (1)
 #define BITMAP_BLOCKS ((((TOTAL_BLOCKS + 7)/ 8) + BLOCK_SIZE - 1) / BLOCK_SIZE)
-#define BPLUS_LEAF_NODES (MAX_FILES + ORDER - 2) / (ORDER - 1)
+#define BPLUS_LEAF_NODES ((MAX_FILES + ORDER - 2) / (ORDER - 1))
 #define BPLUS_TREE_BLOCKS (BPLUS_LEAF_NODES + BPLUS_INTERNAL_NODES)
-#define ROOT_DIR_BLOCKS (MAX_FILES + ORDER - 1) / (ORDER - 1)
+#define ROOT_DIR_BLOCKS ((MAX_FILES + ORDER - 1) / (ORDER - 1))
 
 #define SUPER_BLOCK_START (0)
 #define BITMAP_START (SUPER_BLOCK_START + SUPER_BLOCKS)
@@ -48,7 +48,7 @@ namespace pr{
     constexpr int computeInternalNodes(int leafNodes, int order) {
         int total = 0, current = leafNodes;
         while (current > 1) {
-            int parent = (current + order - 1) / order;
+            const int parent = (current + order - 1) / order;
             total += parent;
             current = parent;
         }

@@ -117,7 +117,7 @@ void VFSManager::showGroups() {
 }
 
 void VFSManager::tree(const std::string& path, int depth, const std::string& prefix) {
-    if (isMounted()) fs->tree();
+    if (isMounted()) fs->tree(path, depth, prefix);
 }
 
 // LOGS

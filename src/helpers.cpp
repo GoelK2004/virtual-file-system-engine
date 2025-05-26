@@ -7,7 +7,7 @@ namespace helpers{
 			return false;
 		if (fileName == "." || fileName == "..")
 			return false;
-		return std::all_of(fileName.begin(), fileName.end(), [](char ch){
+		return std::all_of(fileName.begin(), fileName.end(), [](const char ch){
 			return std::isalnum(ch) || ch == '.' || ch == '_';
 		});
 	}
