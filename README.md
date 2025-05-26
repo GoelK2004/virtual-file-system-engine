@@ -95,6 +95,14 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
  - Entry point: main.cpp
 ```
 
+## Future Improvements
+
+1. **Multi-terminal Support for Concurrency**  
+   Implement a client-server architecture using UNIX domain sockets to allow multiple terminals to access the file system concurrently. This will enable real-time sharing and synchronization of metadata and file operations, improving usability and robustness.
+
+2. **Recursive Delete and Create Commands**  
+   Enhance file and directory management by adding recursive capabilities to the `delete` and `create` commands. This allows for easier management of nested directories and bulk operations.
+
 ## License
 
 **All Rights Reserved.**
