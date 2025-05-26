@@ -10,12 +10,12 @@ int main(){
     MountManager mountManager;
 
     // Step 1: Creating a concrete file system
-    FileSystemInterface* fs = new System("myDisk.img");
+    FileSystemInterface* fs = new System("/disks/myDisk.img");
 
     // Step 2: Create and initialize VFS Manager
     VFSManager* vfsManager = new VFSManager();
     vfsManager->mount(fs); 
-    mountManager.mount("/dir1", "myDisk.img", "rootFS", vfsManager);
+    mountManager.mount("/dir1", "/disks/myDisk.img", "rootFS", vfsManager);
 
     // Step 2: Pass this to the CLI
     std::cout << "-----------------------------------------------------\n";
