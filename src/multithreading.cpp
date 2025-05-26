@@ -192,7 +192,62 @@ bool System::deleteDataFile(const std::string& fileName, const bool check, uint6
 }
 
 bool System::deleteDataDir(const std::string& fileName, const bool check, uint64_t timestamp) {
-	std::string searchFile = std::to_string(user.user_id) + std::to_string(currentDir) + "D_" + fileName;
+	int lastDel, currentIndex = currentDir;
+	std::string dirNameCal(fileName);
+	if (dirNameCal.back() == '/')	dirNameCal.pop_back();
+	lastDel = dirNameCal.rfind('/');
+	std::string newDirName(dirNameCal.substr(lastDel + 1));
+	if (lastDel != -1) {
+		FileEntry* dir = nullptr;
+		std::stringstream ss(dirNameCal.substr(0, lastDel));
+		std::string token;
+		while (getline(ss, token, '/')) {
+			if (token.empty())	continue;
+			if (token == ".")	continue;
+			if (token == "..") {
+				if (currentIndex == 0)	currentDir = 0;
+				else if (!dir) {
+					for (const auto& entry : metaDataTable)	{
+						if (entry->dirID == currentIndex) {
+							currentIndex = entry->parentIndex;
+							break;
+						}
+					}
+					for (const auto& entry : metaDataTable) {
+						if (entry->dirID == currentIndex) {
+							dir = entry;
+							break;
+						}
+					}
+				} 
+				else {
+					currentIndex = dir->parentIndex;
+					for (const auto& entry : metaDataTable) {
+						if (entry->dirID == currentIndex && entry->owner_id == user.user_id && entry->isDirectory) {
+							dir = entry;
+							break;
+						}
+					}
+				}
+			} else {
+				std::string searchDir = std::to_string(user.user_id) + std::to_string(currentIndex) + "D_" + token;
+				const int dirIndex = Entries->getDir(searchDir);
+				if (dirIndex == -1) {
+					std::cerr << "Error: Path could not be resolved(dir not found).\n";
+					return false;
+				}
+				dir = metaDataTable[dirIndex];
+				if (dir == nullptr || dir->fileName[0] == '\0'){
+					std::cerr << "Error: Path could not be resolved(dir misplace).\n";
+					return false;
+				}
+				currentIndex = dir->dirID;
+			}
+		}
+	}
+	
+	
+	const std::string searchFile = std::to_string(user.user_id) + std::to_string(currentIndex) + "D_" + newDirName;
 	int fileInd = Entries->getFile(searchFile);
 	if (fileInd == -1) {
 		std::cerr << "\tError: Cannot delete directory '" << fileName << "' (folder not present).\n";
@@ -223,7 +278,10 @@ bool System::deleteDataDir(const std::string& fileName, const bool check, uint64
 	else {
 		journalManager->markCommitted(timestamp);
 	}
+	file->fileName[0] = '\0';
 	releaseWriteLock(file);
+	delete file;
+	
 	return true;
 }
 
@@ -292,7 +350,16 @@ bool System::renameFiles(const std::string &fileName, const std::string &newName
 		std::cerr << "\tError: Write permission denied for the file '" << fileName << "'.\n";
 		return false;
 	}
-
+	
+	for (const auto& fileT : metaDataTable) {
+		std::string fileNameT(fileT->fileName);
+		fileNameT = fileNameT.substr(static_cast<int>(std::to_string(fileT->owner_id).length() + std::to_string(fileT->parentIndex).length()) + 2);
+		if (fileT->parentIndex == file->parentIndex && fileNameT == newName) {
+			std::cerr << "\tError: File with same name already exists.\n";
+			return false;
+		}
+	}
+	
 	openFile(file);
 	acquireWriteLock(file);
 	uint64_t time;

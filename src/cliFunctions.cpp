@@ -88,6 +88,14 @@ bool System::chownM(const std::string& fileName, const std::string& changeOwners
 
 	int colonPos = changeOwnership.find(':');
 	int owner_id = std::stoi(changeOwnership.substr(0, colonPos));
+	
+	bool found = false;
+	for (const auto& usr : userDatabase)	if (static_cast<int>(usr->user_id) == owner_id)	found = true;
+	if (!found) {
+		std::cerr << "Error: Owner not found.\n";
+		return false;
+	}
+	
 	if (changeOwnership.substr(colonPos + 1) == "")	file->group_id = 0;
 	else {
 		int group_id = std::stoi(changeOwnership.substr(colonPos + 1));

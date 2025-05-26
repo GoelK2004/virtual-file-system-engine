@@ -122,6 +122,7 @@ int BPlusTree::loadBPlusTree(std::fstream &disk) {
             }
 
 			BPlusTreeNode* newNode = new BPlusTreeNode();
+			if (nodeMap.empty())	root = newNode;
 			newNode->nodeID = nodeID;
 			newNode->isLeaf = isLeaf;
 			newNode->keys = keys;
@@ -182,7 +183,6 @@ int BPlusTree::loadBPlusTree(std::fstream &disk) {
 		return 0;
     }
 
-	root = nodeMap.begin()->second;
 	return 1;
 }
 

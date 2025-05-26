@@ -88,6 +88,8 @@ void System::loadDirectoryTable(std::fstream &disk){
 					if (index != -1 && index != static_cast<int>(metaDataTable.size()) - 1) {
 						Entries->updateIdx(toBeSaved->fileName, metaDataTable.size() - 1);
 					}
+					metaIndex++;
+					if (toBeSaved->isDirectory)	availableDirEntry++;
 				}
 			}
 		}
