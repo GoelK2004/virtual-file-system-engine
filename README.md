@@ -103,6 +103,9 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 2. **Recursive Delete and Create Commands**  
    Enhance file and directory management by adding recursive capabilities to the `delete` and `create` commands. This allows for easier management of nested directories and bulk operations.
 
+3. **Disk Updates**  
+   Save the in memory updates to disks after each operation to maintain consistency instead of saving the changes while closing the program.
+
 ## License
 
 **All Rights Reserved.**
