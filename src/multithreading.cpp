@@ -254,7 +254,7 @@ bool System::deleteDataDir(const std::string& fileName, const bool check, uint64
 		return false;
 	}
 	FileEntry* file = metaDataTable[fileInd];
-	if (!file || file->parentIndex != currentDir) {
+	if (!file) {
 		std::cerr << "\tError: Cannot delete directory '" << fileName << "' (directory not found).\n";
 		return false;
 	}

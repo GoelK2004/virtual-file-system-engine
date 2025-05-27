@@ -99,6 +99,8 @@ private:
 	void rollbackMetadataIndex(std::fstream &disk, Superblock &originalSuperblock, int orgIndex, std::vector<int> &newlyAllocatedBlocks);
 	void rollbackMetadataOrg(std::fstream &disk, Superblock &originalSuperblock, FileEntry* orgFileEntry, int orgIndex, std::vector<int> &newlyAllocatedBlocks);
 
+	int extractPath(const std::string& path, int& currentIndex);
+
 public:
 	JournalManager* journalManager;
 	MetadataManager* Entries;

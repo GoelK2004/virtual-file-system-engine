@@ -31,14 +31,18 @@ std::vector<std::string> parseInput(const std::string& input) {
 	return tokens;
 }
 
-CommandLineInterface::CommandLineInterface(VFSManager* filesys) : vfs(filesys) {}
+CommandLineInterface::CommandLineInterface(VFSManager* filesys, const std::string& fsName) : vfs(filesys) {
+	FSName = fsName;
+}
 
 void CommandLineInterface::runCLI() {
 	std::string input;
 	std::string path = vfs->createPath();
 	while (true) {
 		path = vfs->createPath();
-		std::cout << path << '>';
+		int del = path.find(')');
+		std::string newPath = path.substr(0, del) + '@' + FSName + path.substr(del);
+		std::cout << newPath << " > ";
 		std::getline(std::cin, input);
 		auto args = parseInput(input);
 		if (args.empty())	continue;

@@ -19,7 +19,7 @@ int main(){
 
     // Step 2: Pass this to the CLI
     std::cout << "-----------------------------------------------------\n";
-    CommandLineInterface cli(mountManager.getCurrentVFS());
+    CommandLineInterface cli(mountManager.getCurrentVFS(), mountManager.getCurrentFSName());
     cli.runCLI();
 
     // Cleanup

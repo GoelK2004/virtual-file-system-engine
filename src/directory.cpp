@@ -150,54 +150,8 @@ bool System::changeDirectory(const std::string &dirName){
 	std::string parsedDirName(dirName);
 	int currentIndex = currentDir;
 	if (parsedDirName.back() == '/')	parsedDirName.pop_back();
-	std::stringstream stream(parsedDirName);
-	std::string token;
-	FileEntry* dir = nullptr;
+	currentIndex = extractPath(parsedDirName, currentIndex);
 
-	while (getline(stream, token, '/')) {
-		if (token.empty())	continue;
-		if (token == ".")	continue;
-		if (token == "..") {
-			if (currentIndex == 0)	currentDir = 0;
-			else if (!dir) {
-				for (const auto& entry : metaDataTable)	{
-					if (entry->dirID == currentIndex) {
-						currentIndex = entry->parentIndex;
-						break;
-					}
-				}
-				for (const auto& entry : metaDataTable) {
-					if (entry->dirID == currentIndex) {
-						dir = entry;
-						break;
-					}
-				}
-			} 
-			else {
-				currentIndex = dir->parentIndex;
-				for (const auto& entry : metaDataTable) {
-					if (entry->dirID == currentIndex && entry->owner_id == user.user_id && entry->isDirectory) {
-						dir = entry;
-						break;
-					}
-				}
-			}
-		} else {
-			const std::string searchDir = std::to_string(user.user_id) + std::to_string(currentIndex) + "D_" + token;
-			const int dirIndex = Entries->getDir(searchDir);
-			if (dirIndex == -1) {
-				std::cerr << "Error: Directory '" << dirName << "' not found(dir not found).\n";
-				return false;
-			}
-			dir = metaDataTable[dirIndex];
-			if (!dir || (dir->owner_id != user.user_id)) {
-				std::cerr << "Error: Directory '" << dirName << "' not found.\n";
-				return false;
-			}
-			currentIndex= dir->dirID;
-		}
-	}
-
-	currentDir = currentIndex;
+	if (currentIndex != -1)	currentDir = currentIndex;
 	return true;
 }
