@@ -1,5 +1,7 @@
 # Virtual File System (VFS)
 
+**At present, the program supports only UNIX system**
+
 A high-performance, modular, and feature-rich **Virtual File System** built from scratch in **C++**, designed to emulate real-world file systems like ext4 or NTFS. This system includes advanced components such as journaling, permission management, metadata caching, and multi-filesystem mounting, making it a complete simulation of how modern file systems work.
 
 ---
