@@ -1,18 +1,20 @@
 #include "filesystem.h"
 
 // namespace fileSystemOperations {
-void createFile(System& fs, std::fstream &disk, const std::string &fileName, const int &fileSize, FileEntry* newFile, uint16_t permissions) {
-	std::cout << "Creating file: '" << fileName << "':\n";
+void createFile(System& fs, ClientSession* session, std::fstream &disk, const std::string &fileName, const int &fileSize, FileEntry* newFile, const int& index, uint16_t permissions) {
+	// std::cout << "Creating file: '" << fileName << "':\n";
 	
 	if (!helpers::isValidFileName(fileName)){
-		std::cerr << "\tError: File name not valid (Length must be less than 32, and no special characters except '.' and '_')\n";
+		session->oss << "Error: File name not valid (Length must be less than 32, and no special characters except '.' and '_')\n";
+		// std::cerr << "\tError: File name not valid (Length must be less than 32, and no special characters except '.' and '_')\n";
 		return;
 	}
-	std::string savedName = std::to_string(fs.user.user_id) + std::to_string(fs.currentDir) + "F_" + fileName;
+	std::string savedName = std::to_string(session->user.user_id) + std::to_string(index) + "F_" + fileName;
 	int requiredBlocks = (fileSize + BLOCK_SIZE - 1)/BLOCK_SIZE;
-	std::vector<int> allocatedBlocks = fs.allocateBitMapBlocks(disk, requiredBlocks);
+	std::vector<int> allocatedBlocks = fs.allocateBitMapBlocks(disk, requiredBlocks, session);
 	if (allocatedBlocks.empty()){
-		std::cerr << "\tError: Try creating file again.\n";
+		session->oss << "Error: Try creating file again.\n";
+		// std::cerr << "\tError: Try creating file again.\n";
 		return;
 	}
 	int size = static_cast<int>(allocatedBlocks.size());
@@ -20,8 +22,9 @@ void createFile(System& fs, std::fstream &disk, const std::string &fileName, con
 	int extentIndex = 0;
 	for (int i = 0; i < size; i++){
 		if (extentIndex >= MAX_EXTENTS){
-			std::cerr << "\tError: Exceeded max extents while creating file.\n";
-			std::cerr << "\tAttempting rollback\n";
+			session->oss << "Error: Exceeded max extents while creating file.\n";
+			// std::cerr << "\tError: Exceeded max extents while creating file.\n";
+			// std::cerr << "\tAttempting rollback\n";
 			fs.rollbackMetadataIndex(disk, fs.superblock, fs.metaIndex - 1, allocatedBlocks);
 			return;
 		}
@@ -38,61 +41,72 @@ void createFile(System& fs, std::fstream &disk, const std::string &fileName, con
 	}
 	newFile->fileSize = fileSize;
 	newFile->isDirectory = false;
-	newFile->parentIndex = fs.currentDir;
-	newFile->dirID = fs.currentDir;
+	newFile->parentIndex = index;
+	newFile->dirID = index;
 	uint64_t current_time = static_cast<int>(std::time(nullptr));
 	newFile->created_at = current_time;
 	newFile->modified_at = current_time;
 	newFile->accessed_at = current_time;
-	newFile->owner_id = fs.user.user_id;
-	newFile->group_id = fs.user.group_id;
+	newFile->owner_id = session->user.user_id;
+	newFile->group_id = session->user.group_id;
 	newFile->permissions = permissions;
 	newFile->attributes = 0;
 	
 	fs.superblock.freeBlocks -= requiredBlocks;
 	FileEntry* parentDir = nullptr;
-	if (newFile->parentIndex != 0){
-		for (auto& entry : fs.metaDataTable) {
-			if (entry->dirID == newFile->parentIndex && entry->isDirectory){
-				parentDir = entry;
-				break;
+	{
+		std::shared_lock<std::shared_mutex> lock(fs.metaMutex);
+		if (newFile->parentIndex != 0){
+			for (auto& entry : fs.metaDataTable) {
+				if (entry->dirID == newFile->parentIndex && entry->isDirectory){
+					parentDir = entry;
+					break;
+				}
 			}
+			if (!parentDir) {
+				session->oss << "Error: No parent directory found.\n";
+				// std::cerr << "Error: No parent directory found.\n";
+				return;
+			}
+			parentDir->fileSize += newFile->fileSize;
 		}
-		if (!parentDir) {
-			std::cerr << "Error: No parent directory found.\n";
-			return;
-		}
-		parentDir->fileSize += newFile->fileSize;
 	}
-	fs.user.totalSize += newFile->fileSize;
+	session->user.totalSize += newFile->fileSize;
 	
-	int key = fs.Entries->insertFileEntry(savedName, fs.metaIndex);
+	fs.Entries->insertFileEntry(savedName, fs.metaIndex);
+	// int key = fs.Entries->insertFileEntry(savedName, fs.metaIndex);
 	fs.metaDataTable.push_back(newFile);
 	fs.metaIndex++;
 	
-	int save = fs.saveDirectoryTable(disk, fs.metaIndex-1);
+	int save = fs.saveDirectoryTable(disk, fs.metaIndex-1, session);
 	if (save == 0){
-		std::cerr << "\tError: Corrupted file entry(Cannot update file entry) with index: " << fs.metaIndex - 1 << ".\n";
-		std::cout << "\tAttempting rollback\n";
+		session->oss << "Error: Corrupted file entry(Cannot update file entry) with index: " << fs.metaIndex - 1 << ".\n";
+		// std::cout << "\tError: Corrupted file entry(Cannot update file entry) with index: " << fs.metaIndex - 1 << ".\n";
+		// std::cout << "\tAttempting rollback\n";
 		fs.rollbackMetadataIndex(disk, originalSuperblock, fs.metaIndex - 1, allocatedBlocks);
 		return;
 	}
 	save = fs.saveSuperblock(disk);
 	if (save == 0){
-		std::cerr << "\tError: Cannot update Superblock after creating file.\n";
-		std::cout << "\tAttempting rollback\n";
+		session->oss << "Error: Cannot update Superblock after creating file.\n";
+		// std::cerr << "\tError: Cannot update Superblock after creating file.\n";
+		// std::cout << "\tAttempting rollback\n";
 		fs.rollbackMetadataIndex(disk, originalSuperblock, fs.metaIndex - 1, allocatedBlocks);
 		fs.Entries->removeFileEntry(savedName);
 		return;
 	}
 	disk.flush();
-	std::cout << "\tFile '" << fileName << "' created successfully, at block: " << newFile->extents->startBlock << " and key: " << key << '\n';
+	// std::cout << "\tFile '" << fileName << "' created successfully, at block: " << newFile->extents->startBlock << " and key: " << key << '\n';
 }
-void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fileIndex, const std::string &fileContent, bool append){
-	std::cout << "Writing content to file '" << file->fileName << "'.\n";
+void writeFileData(System& fs, ClientSession* session, std::fstream &disk, FileEntry* file, const int fileIndex, const std::string &fileContent, bool append){
+	// std::cout << "Writing content to file '" << file->fileName << "'.\n";
 	std::vector<int> newlyAllocatedBlocks;
 	Superblock originalSuperBlock = fs.superblock;
-	FileEntry* orgFileEntry = fs.metaDataTable[fileIndex];
+	FileEntry* orgFileEntry;
+	{
+		std::shared_lock<std::shared_mutex> lock(fs.metaMutex);
+		orgFileEntry = fs.metaDataTable[fileIndex];
+	}
 	int reqBlocksUpdate = 0;
 	if (append){
 		int bytesWritten = file->fileSize % BLOCK_SIZE;
@@ -100,7 +114,8 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 		int actualBytesWritten = 0;
 		int requiredBlocks = (static_cast<int>(fileContent.size()) - remaining + BLOCK_SIZE - 1)/BLOCK_SIZE;
 		if (fs.superblock.freeBlocks < requiredBlocks){
-			std::cerr << "\tError: Not enough storage to append data.\n";
+			session->oss << "Error: Not enough storage to append data.\n";
+			// std::cout << "\tError: Not enough storage to append data.\n";
 			return;
 		}
 		reqBlocksUpdate = requiredBlocks;
@@ -110,7 +125,8 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 			disk.seekp(block * BLOCK_SIZE + bytesWritten, std::ios::beg);
 			disk.write(fileContent.data(), writeSize);
 			if (disk.fail()){
-				std::cerr << "\tError: Cannot append data(first block).\n";
+				session->oss << "Error: Cannot append data(first block).\n";
+				// std::cout << "\tError: Cannot append data(first block).\n";
 				disk.clear();
 				std::vector<char> emptyBlock(0, writeSize);
 				disk.seekp(block * BLOCK_SIZE + bytesWritten, std::ios::beg);
@@ -120,12 +136,13 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 			actualBytesWritten += writeSize;
 		}
 		if (actualBytesWritten != static_cast<int>(fileContent.size())) {
-			std::vector<int> newlyAllocatedBlocks = fs.allocateBitMapBlocks(disk, requiredBlocks);
+			std::vector<int> newlyAllocatedBlocks = fs.allocateBitMapBlocks(disk, requiredBlocks, session);
 			int size = static_cast<int>(newlyAllocatedBlocks.size()), extentIndex = file->numExtents;
 			for (int i = 0; i < size; i++){
 				if (extentIndex > MAX_EXTENTS){
-					std::cerr << "\tError: Exceeded max extents while creating file.\n";
-					std::cerr << "\tAttempting rollback\n";
+					session->oss << "Error: Exceeded max extents while creating file.\n";
+					// std::cerr << "\tError: Exceeded max extents while creating file.\n";
+					// std::cerr << "\tAttempting rollback\n";
 					fs.rollbackMetadataIndex(disk, fs.superblock, -1, newlyAllocatedBlocks); // No FileEntry modification until
 					// RollingBack already written data
 					int block = orgFileEntry->extents[orgFileEntry->numExtents - 1].startBlock + orgFileEntry->extents[orgFileEntry->numExtents - 1].length - 1;
@@ -152,8 +169,9 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 				disk.seekp(block * BLOCK_SIZE, std::ios::beg);
 				disk.write(fileContent.data() + actualBytesWritten, toWrite);
 				if (disk.bad()){
-					std::cerr << "\tError: Failed to write to newly allocated blocks in append mode.\n";
-					std::cerr << "\tAttempting rollback:\n";
+					session->oss << "Error: Failed to write to newly allocated blocks in append mode.\n";
+					// std::cerr << "\tError: Failed to write to newly allocated blocks in append mode.\n";
+					// std::cerr << "\tAttempting rollback:\n";
 					fs.rollbackMetadataOrg(disk, originalSuperBlock, orgFileEntry, fileIndex, newlyAllocatedBlocks);
 					return;
 				}
@@ -168,12 +186,13 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 		if (requiredBlocks > allocatedBlocks){
 			int difference = requiredBlocks - allocatedBlocks;
 			if (fs.superblock.freeBlocks < difference){
-				std::cerr << "\tError: Not enough storage for additional data.\n";
+				session->oss << "Error: Not enough storage for additional data.\n";
+				// std::cerr << "\tError: Not enough storage for additional data.\n";
 				return;
 			}
 			reqBlocksUpdate = difference;
 			int block = file->extents[file->numExtents - 1].startBlock + file->extents[file->numExtents - 1].length - 1;
-			std::vector<int> newlyAllocatedBlocks = fs.allocateBitMapBlocks(disk, difference);
+			std::vector<int> newlyAllocatedBlocks = fs.allocateBitMapBlocks(disk, difference, session);
 			int i = 0;
 			while (newlyAllocatedBlocks[i] == block + 1){
 				file->extents[file->numExtents - 1].length += 1;
@@ -183,8 +202,9 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 				int size = newlyAllocatedBlocks.size(), extentIndex = file->numExtents;
 				for (int i = 0; i < size; i++){
 					if (extentIndex > MAX_EXTENTS){
-						std::cerr << "\tError: Exceeded max extents while creating file.\n";
-						std::cerr << "\tAttempting rollback\n";
+						session->oss << "Error: Exceeded max extents while creating file.\n";
+						// std::cerr << "\tError: Exceeded max extents while creating file.\n";
+						// std::cerr << "\tAttempting rollback\n";
 						fs.rollbackMetadataOrg(disk, fs.superblock, orgFileEntry, fileIndex, newlyAllocatedBlocks);
 						return;
 					}
@@ -236,7 +256,8 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 				disk.seekp((file->extents[extentIndex].startBlock + i) * BLOCK_SIZE, std::ios::beg);
 				disk.write(fileContent.data() + bytesWritten, dataBytes);
 				if (disk.bad()){
-					std::cerr << "\tError: Failed to write data to disk for file '" << file->fileName << "' at extent: " << extentIndex << ".\n";
+					session->oss << "Error: Failed to write data to disk for file '" << file->fileName << "' at extent: " << extentIndex << ".\n";
+					// std::cerr << "\tError: Failed to write data to disk for file '" << file->fileName << "' at extent: " << extentIndex << ".\n";
 					return;
 				}		
 				bytesWritten += dataBytes;
@@ -246,21 +267,25 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 		disk.flush();
 	}
 	FileEntry* parentDir = nullptr;
-	if (file->parentIndex != 0){
-		for (auto& entry : fs.metaDataTable) {
-			if (entry->dirID == file->parentIndex && entry->isDirectory && entry->owner_id == fs.user.user_id){
-				parentDir = entry;
-				break;
+	{
+		std::shared_lock<std::shared_mutex> lock(fs.metaMutex);
+		if (file->parentIndex != 0){
+			for (auto& entry : fs.metaDataTable) {
+				if (entry->dirID == file->parentIndex && entry->isDirectory && entry->owner_id == session->user.user_id){
+					parentDir = entry;
+					break;
+				}
 			}
+			if (!parentDir) {
+				session->oss << "Error: No parent directory found.\n";
+				// std::cerr << "Error: No parent directory found.\n";
+				return;
+			}
+			if (parentDir->fileSize >= file->fileSize)
+				parentDir->fileSize -= file->fileSize;
 		}
-		if (!parentDir) {
-			std::cerr << "Error: No parent directory found.\n";
-			return;
-		}
-		if (parentDir->fileSize >= file->fileSize)
-			parentDir->fileSize -= file->fileSize;
 	}
-	fs.user.totalSize -= file->fileSize;
+	session->user.totalSize -= file->fileSize;
 	file->fileSize = append ? fileContent.size() + file->fileSize : fileContent.size();
 	if (file->parentIndex != 0)
 		parentDir->fileSize += file->fileSize;
@@ -268,36 +293,36 @@ void writeFileData(System& fs, std::fstream &disk, FileEntry* file, const int fi
 	file->modified_at = current_time;
 	file->accessed_at = current_time;
 	fs.superblock.freeBlocks -= reqBlocksUpdate;
-	int save = fs.saveDirectoryTable(disk, fileIndex);
+	int save = fs.saveDirectoryTable(disk, fileIndex, session);
 	if (save == 0) {
-		std::cerr << "\tAttempting rollback\n";
+		// std::cerr << "\tAttempting rollback\n";
 		fs.rollbackMetadataOrg(disk, originalSuperBlock, orgFileEntry, fileIndex, newlyAllocatedBlocks);
 		return;
 	}
 	save = fs.saveSuperblock(disk);
 	if (save == 0){
-		std::cerr << "\tAttempting rollback\n";
+		// std::cerr << "\tAttempting rollback\n";
 		fs.rollbackMetadataOrg(disk, originalSuperBlock, orgFileEntry, fileIndex, newlyAllocatedBlocks);
 		return;
 	}
 	save = fs.saveBitMap(disk);
 	if (save == 0){
-		std::cerr << "\tError: Cannot update bitmap. Attempting rollback\n";
+		// std::cerr << "\tError: Cannot update bitmap. Attempting rollback\n";
 		fs.rollbackMetadataOrg(disk, originalSuperBlock, orgFileEntry, fileIndex, newlyAllocatedBlocks);
 		return;
 	}
 	disk.flush();
-	std::cout << "\tData written sucessfully for the file: '" << file->fileName << "'.\n";
+	// std::cout << "\tData written sucessfully for the file: '" << file->fileName << "'.\n";
 	// for (auto& filex : file->extents) {
 	// 	std::cout << "\tExtent: " << filex.startBlock << " and length: " << filex.length << '\n';
 	// }
 }
-std::string readFileData(std::fstream &disk, FileEntry* file){	
-	std::cout << "Reading data from file '" << file->fileName << "'.\n";
+std::string System::readFileData(std::fstream &disk, FileEntry* file, ClientSession* session){	
+	// std::cout << "Reading data from file '" << file->fileName << "'.\n";
 	std::string fileContent;
 	int extent = 0;
-	std::cout << "File Name: " << file->fileName << '\n';
-	std::cout << "File Size: " << file->fileSize << '\n';
+	// std::cout << "File Name: " << file->fileName << '\n';
+	// std::cout << "File Size: " << file->fileSize << '\n';
 	while (extent < file->numExtents){
 		int ln = file->extents[extent].length, bytesToRead = 0, bytesRead = 0;
 		// Counting total bytes to read from all extents
@@ -312,12 +337,12 @@ std::string readFileData(std::fstream &disk, FileEntry* file){
 		// disk.read(buffer.data(), bytesToRead);
 		disk.read(&buffer[0], bytesRead);
 		if (disk.fail()){
-			std::cerr << "\nError: Cannot read file contents at block: " << file->extents[extent].startBlock << ".\n";
+			session->oss << "\nError: Cannot read file contents at block: " << file->extents[extent].startBlock << ".\n";
 			disk.clear();
 			return "";
 		}
-		std::cout << "\nReading from block: " << file->extents[extent].startBlock << " with length: " << file->extents[extent].length << ":\n";
-		std::cout << buffer;
+		// std::cout << "\nReading from block: " << file->extents[extent].startBlock << " with length: " << file->extents[extent].length << ":\n";
+		// std::cout << buffer;
 		// for (char ch : buffer){
 		// 	std::cout << ch;
 		// }
@@ -325,13 +350,15 @@ std::string readFileData(std::fstream &disk, FileEntry* file){
 		if (bytesRead >= file->fileSize)	break;
 		extent++;
 	}
-	std::cout << "\n\tFile contents read successfully.\n";
+	// std::cout << "\n\tFile contents read successfully.\n";
+	fileContent.insert(fileContent.end(), '\n');
 	return fileContent;
 }
-void deleteFile(System& fs, std::fstream &disk, FileEntry* file, const int fileInd){
-	std::cout << "Deleting file '" << file->fileName << '\n';
+void deleteFile(System& fs, ClientSession* session, std::fstream &disk, FileEntry* file, const int fileInd){
+	// std::cout << "Deleting file '" << file->fileName << '\n';
 	if (!disk){
-		std::cerr << "\tError: Disk not accessible while deleting a file.\n";
+		session->oss << "Error: Disk not accessible while deleting a file.\n";
+		// std::cerr << "\tError: Disk not accessible while deleting a file.\n";
 		return;
 	}
 	std::vector<int> newlyAllocatedBlocks;
@@ -348,28 +375,34 @@ void deleteFile(System& fs, std::fstream &disk, FileEntry* file, const int fileI
 		disk.seekp(block * BLOCK_SIZE, std::ios::beg);
 		disk.write(emptyBlock.data(), emptyBlock.size());
 		if (disk.fail()){
-			std::cerr << "\tError: Cannot erase data.\n";
+			session->oss << "Error: Cannot erase data.\n";
+			// std::cerr << "\tError: Cannot erase data.\n";
 			disk.clear();
 			return;
 		}	
 	}
-	std::cout << "\tClearing up space\n";
+	// std::cout << "\tClearing up space\n";
 	fs.freeBitMapBlocks(disk, newlyAllocatedBlocks);
 	fs.saveBitMap(disk);
-	fs.metaDataTable[fileInd] = new FileEntry();
+	{
+		std::unique_lock<std::shared_mutex> lock(fs.metaMutex);
+		fs.metaDataTable[fileInd] = new FileEntry();
+	}
 	fs.superblock.freeBlocks += freed;
-	int save = fs.saveDirectoryTable(disk, fileInd);
+	int save = fs.saveDirectoryTable(disk, fileInd, session);
 	if (save == 0){
-		std::cerr << "\tError: File entry update error during file deletion\n";
+		session->oss << "Error: File entry update error during file deletion\n";
+		// std::cerr << "\tError: File entry update error during file deletion\n";
 		return;
 	}
 	save = fs.saveSuperblock(disk);
 	if (save == 0){
-		std::cerr << "\tError: Superblock update error during file deletion\n";
+		session->oss << "Error: Superblock update error during file deletion\n";
+		// std::cerr << "\tError: Superblock update error during file deletion\n";
 		return;
 	}
 	fs.Entries->removeFileEntry(file->fileName);
 	
 	disk.flush();
-	std::cout << "\tFile deleted successfully.\n";
+	// std::cout << "\tFile deleted successfully.\n";
 }

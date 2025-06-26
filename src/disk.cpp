@@ -1,58 +1,62 @@
 #include "disk.h"
 
-void initialiseDisk(const std::string& diskName){
+bool initialiseDisk(const std::string& diskName){
 	std::ofstream disk(diskName, std::ios::binary);
 	disk.clear();
 	if (!disk){
 		std::cerr << "Error: Cannot create the disk file.\n";
-		return;
+		return false;
 	}
 	
 	std::vector<char> emptyBlock(DISK_SIZE, 0);
 	disk.write(reinterpret_cast<char*>(emptyBlock.data()), static_cast<int>(emptyBlock.size()));
 	if (!disk.good()){
 		std::cerr << "Error: Cannot create the disk file.\n";
-		return;
+		return false;
 	}
 	disk.flush();
 	std::cout << "Disk successfully created.\n";
 	disk.close();
+
+	return true;
 }
 
-void initialiseSuperblock(System& fs) {
+bool initialiseSuperblock(System& fs) {
 	std::fstream disk(fs.DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
 	if (!disk){
 		std::cerr << "Error: Cannot open disk for superblock initialisation.\n";
-		return;
+		return false;
 	}
-
 	Superblock* superblock = new Superblock();
-	superblock->blockSize = BLOCK_SIZE;
-	superblock->totalBlocks = TOTAL_BLOCKS;
-	superblock->freeBlocks = TOTAL_BLOCKS - (SUPER_BLOCKS + BITMAP_BLOCKS + ROOT_DIR_BLOCKS + BPLUS_TREE_BLOCKS);
-	superblock->fatStart = BITMAP_START * BLOCK_SIZE;
-	superblock->dataStart = DATA_START * BLOCK_SIZE;
-	
+	{
+		std::unique_lock<std::shared_mutex> lock(fs.superblockMutex);
+		superblock->blockSize = BLOCK_SIZE;
+		superblock->totalBlocks = TOTAL_BLOCKS;
+		superblock->freeBlocks = TOTAL_BLOCKS - (SUPER_BLOCKS + BITMAP_BLOCKS + ROOT_DIR_BLOCKS + BPLUS_TREE_BLOCKS);
+		superblock->fatStart = BITMAP_START * BLOCK_SIZE;
+		superblock->dataStart = DATA_START * BLOCK_SIZE;
+	}
 	disk.seekp(SUPER_BLOCK_START * BLOCK_SIZE, std::ios::beg);
 	disk.write(reinterpret_cast<char*>(superblock), sizeof(Superblock));
 	fs.loadSuperblock(disk);
 	if (disk.fail()){
 		std::cout << "Error: Cannot load superblock into memory.\n";
 		disk.clear();
-		return;
+		return false;
 	}
 	std::cout << "Superblock initialised and stored on disk.\n";
 	std::cout << "Successfully loaded superblock in memory.\n";
 	
 	delete superblock;
 	disk.close();
+	return true;
 }
 
-void initialiseFAT(System& fs){
+bool initialiseFAT(System& fs){
 	std::fstream disk(fs.DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
 	if (!disk){
 		std::cerr << "Error: Cannot open disk for FAT table initialisation.\n";
-		return;
+		return false;
 	}
 
 	std::vector<char> buffer(TOTAL_BLOCKS / 8, 0);
@@ -64,7 +68,7 @@ void initialiseFAT(System& fs){
 	disk.write(buffer.data(), buffer.size());
 	if (disk.bad()){
 		std::cerr << "Error: Cannot write bitmap to disk.\n";
-		return;
+		return false;
 	}
 	disk.flush();
 	std::cout << "Bitmap initialised and stored in the disk.\n";
@@ -72,13 +76,15 @@ void initialiseFAT(System& fs){
 	if (disk.fail()){
 		std::cout << "Error: Cannot load bitmap into memory.\n";
 		disk.clear();
-		return;
+		return false;
 	}
 	std::cout << "Successfully loaded bitmap in memory.\n";
 	disk.close();
+
+	return true;
 }
 
-void initialiseFileEntries(System& fs){
+bool initialiseFileEntries(System& fs){
 	std::fstream disk(fs.DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
 	if (!disk){
 		std::cerr << "Error: Cannot open disk for file entry initialisation.\n";
@@ -99,21 +105,27 @@ void initialiseFileEntries(System& fs){
 	disk.flush();
 	
 	std::cout << "File entries initialised and stored in the disk.\n";
-	fs.metaDataTable.reserve(MAX_FILES);
+	{
+		std::unique_lock<std::shared_mutex> lock(fs.metaMutex);
+		fs.metaDataTable.reserve(MAX_FILES);
+	}	
 	fs.loadDirectoryTable(disk);
 	if (disk.fail()){
 		std::cerr << "Error: Cannot load directory entries into memory.\n";
 		disk.clear();
-		return;
+		return false;
 	}
 	std::cout << "Successfully loaded directory entries into memory.\n";
 	disk.close();
+
+	return true;
 }
 
-void initialiseUsers(System& fs) {
+bool initialiseUsers(System& fs) {
 	std::fstream disk(fs.DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
 	if (!disk){
 		std::cerr << "Error: Cannot open disk for file entry initialisation.\n";
+		return false;
 	}
 
 	fs.userTable.clear();
@@ -132,18 +144,25 @@ void initialiseUsers(System& fs) {
 	userScoped->password = 0;
 	fs.userDatabase.push_back(userScoped);
 
-	fs.user = *userScoped;
+	// fs.user = *userScoped;
+	return true;
 }
 
-void System::formatFileSystem() {
+bool System::formatFileSystem() {
 	std::cout << "Starting File System...\n";
 
+	bool check = true;
 	const std::string diskPath = DISK_PATH;
-	initialiseDisk(diskPath);
-	initialiseSuperblock(*this);
-	initialiseFAT(*this);
-	initialiseFileEntries(*this);
-	initialiseUsers(*this);
+	check = initialiseDisk(diskPath);
+	if (!check)	return false;
+	check = initialiseSuperblock(*this);
+	if (!check)	return false;
+	check = initialiseFAT(*this);
+	if (!check)	return false;
+	check = initialiseFileEntries(*this);
+	if (!check)	return false;
+	check = initialiseUsers(*this);
+	if (!check)	return false;
 	journalManager->loadJournal();
 	
 	std::cout << "File system formatting completed successfully.\n";
@@ -153,23 +172,31 @@ void System::formatFileSystem() {
     std::cout << "  B+ Tree Start     : Block " << BPLUS_TREE_START << '\n';
     std::cout << "  Root Directory    : Block " << ROOT_DIR_START << '\n';
     std::cout << "  Data Blocks Start : Block " << DATA_START << '\n';
-    std::cout << "  Free Blocks       : " << superblock.freeBlocks << " / " << superblock.totalBlocks << '\n';
+	{
+		std::shared_lock<std::shared_mutex> lock(superblockMutex);
+    	std::cout << "  Free Blocks       : " << superblock.freeBlocks << " / " << superblock.totalBlocks << '\n';
+	}
+	return true;
 }
 
-void System::loadFromDisk() {
+bool System::loadFromDisk() {
 	std::cout << "Starting File System...\n";
+	bool check = true;
 	
 	std::fstream disk(DISK_PATH, std::ios::in | std::ios::out | std::ios::binary);
-	loadSuperblock(disk);
-	loadBitMap(disk);
+	check = loadSuperblock(disk);
+	if (!check)	return false;
+	check = loadBitMap(disk);
+	if (!check)	return false;
 	if (!Entries->loadBPlusTree(disk)) {
 		std::cerr << "Error: Cannot load B+ Tree.\n";
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
-	loadDirectoryTable(disk);
-	loadUsers(disk);
+	check = loadDirectoryTable(disk);
+	if (!check)	return false;
+	check = loadUsers(disk);
+	if (!check)	return false;
 	journalManager->loadJournal();
-	journalManager->recoverUncommitedOperations();
 	
 	std::cout << "File system loading completed successfully.\n";
     std::cout << "Disk layout:\n";
@@ -179,6 +206,8 @@ void System::loadFromDisk() {
     std::cout << "  Meta Data Table   : Block " << ROOT_DIR_START << '\n';
     std::cout << "  Data Blocks Start : Block " << DATA_START << '\n';
     std::cout << "  Free Blocks       : " << superblock.freeBlocks << " / " << superblock.totalBlocks << '\n';
+
+	return true;
 }
 
 void System::saveInDisk() {

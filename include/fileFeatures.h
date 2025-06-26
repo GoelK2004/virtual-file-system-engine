@@ -8,5 +8,5 @@ bool hasPermission(const FileEntry& file, uint32_t user_id, uint32_t group_id, i
 // int setAttributes(std::fstream& disk, const std::string& fileName, int attribute);
 // int clearAttributes(std::fstream& disk, const std::string& fileName, int attribute);
 std::string getAttributeString(const FileEntry* file);
-// void renameFile(FileEntry* file, const std::string& newName);
+void renameFile(FileEntry* file, const std::string& newName, ClientSession* session);
 std::string permissionToString(FileEntry* entry);

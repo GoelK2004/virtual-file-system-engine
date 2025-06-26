@@ -1,9 +1,11 @@
-#ifndef VFS_MANAGER_H
-#define VFS_MANAGER_H
+#pragma once
 
+#include <iostream>
 #include <memory>
 #include <string>
+
 #include "fileSystemInterface.h"
+#include "structs.h"
 
 class VFSManager {
 private:
@@ -12,7 +14,8 @@ private:
 public:
     VFSManager() = default;
 	~VFSManager() {
-		delete fs;
+		if (fs)	delete fs;
+		fs = nullptr;
 	};
 
 	FileSystemInterface* getFS() {
@@ -24,36 +27,35 @@ public:
     bool isMounted() const;
 
 	// Helper functions
-	std::string createPath();
+	std::string createPath(ClientSession* session);
     // Exposed command functions
-	void printHelp();
+	void printHelp(ClientSession* session);
 	// void format();
 	// void load();
-	bool create(const std::string& path);
-	bool create(const std::string& path, const int& fileSize);
-	std::string read(const std::string& path);
-	bool write(const std::string& path, const std::string& data);
-	bool append(const std::string& path, const std::string& data);
-	bool remove(const std::string& path);
-	bool rename(const std::string& oldName, const std::string& newName);
-	bool mkdir(const std::string& path);
-	bool rmdir(const std::string& path);
-	bool cd(const std::string& path);
-	void ls();
-	void stat(const std::string& path);
-	bool chmod(const std::string& path, int mode);
-	bool chown(const std::string& path, const std::string& uid);
-	bool chgrp(const std::string& path, uint32_t gid);
-	void whoami() const;
-	void login(const std::string& user_id, const std::string& password);
-	void userAdd(const std::string& userName, const std::string& password, uint32_t group_id = -1);
-	void showUsers();
-	void showGroups();
-	void tree(const std::string& path = "/", int depth = 0, const std::string& prefix = "");
+	bool create(const std::string& path, ClientSession* session);
+	bool create(const std::string& path, const int& fileSize, ClientSession* session);
+	std::string read(const std::string& path, ClientSession* session);
+	bool write(const std::string& path, const std::string& data, ClientSession* session);
+	bool append(const std::string& path, const std::string& data, ClientSession* session);
+	bool remove(const std::string& path, ClientSession* session);
+	bool rename(const std::string& oldName, const std::string& newName, ClientSession* session);
+	bool mkdir(const std::string& path, ClientSession* session);
+	bool rmdir(const std::string& path, ClientSession* session);
+	bool rmrdir(const std::string& path, ClientSession* session);
+	bool cd(const std::string& path, ClientSession* session);
+	void ls(ClientSession* session);
+	void stat(const std::string& path, ClientSession* session);
+	bool chmod(const std::string& path, int mode, ClientSession* session);
+	bool chown(const std::string& path, const std::string& uid, ClientSession* session);
+	bool chgrp(const std::string& path, uint32_t gid, ClientSession* session);
+	void whoami(ClientSession* session) const;
+	void login(const std::string& user_id, const std::string& password, ClientSession* session);
+	void userAdd(const std::string& userName, const std::string& password, ClientSession* session, uint32_t group_id = -1);
+	void showUsers(ClientSession* session);
+	void showGroups(ClientSession* session);
+	void tree(ClientSession* session, const std::string& path = "/", int depth = 0, const std::string& prefix = "");
 
 	// LOGS
 	void bTree();
 
 };
-
-#endif

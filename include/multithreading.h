@@ -7,7 +7,6 @@
 #include <sstream>
 
 #include "system.h"
-#include "filesystem.h"
 #include "fileFeatures.h"
 #include "journaling.h"
 

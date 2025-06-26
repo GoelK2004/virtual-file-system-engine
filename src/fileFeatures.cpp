@@ -17,17 +17,21 @@ std::string permissionToString(FileEntry* entry) {
 	}
 	return permission;
 }
-int setAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute) {
-	std::string file = std::to_string(fs.currentDir) + "F_" + fileName;
+int setAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute, ClientSession* session) {
+	std::string file = std::to_string(session->currentDirectory) + "F_" + fileName;
 	int searchFileIndex = fs.Entries->getFile(file);
 	if (searchFileIndex == -1) {
 		std::cerr << "\tError: File not found.\n";
 		return 0;
 	}
-	FileEntry* searchFile = fs.metaDataTable[searchFileIndex];
+	FileEntry* searchFile;
+	{
+		std::shared_lock<std::shared_mutex> lock(fs.metaMutex);
+		searchFile = fs.metaDataTable[searchFileIndex];
+	}
 	uint8_t tempAttributes = searchFile->attributes;
 	searchFile->attributes |= attribute;
-	int save = fs.saveDirectoryTable(disk, searchFileIndex);
+	int save = fs.saveDirectoryTable(disk, searchFileIndex, session);
 	if (save == 0) {
 		fs.metaDataTable[searchFileIndex]->attributes = tempAttributes;
 		std::cerr << "\tError: Cannot update attributes.\n";
@@ -36,17 +40,21 @@ int setAttributes(System& fs, std::fstream& disk, const std::string& fileName, i
 	std::cout << "Successfully updated attributes.\n";
 	return 1;
 }
-int clearAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute) {
-	std::string file = std::to_string(fs.currentDir) + "F_" + fileName;
+int clearAttributes(System& fs, std::fstream& disk, const std::string& fileName, int attribute, ClientSession* session) {
+	std::string file = std::to_string(session->currentDirectory) + "F_" + fileName;
 	int searchFileIndex = fs.Entries->getFile(file);
 	if (searchFileIndex == -1) {
 		std::cerr << "\tError: File not found.\n";
 		return 0;
 	}
-	FileEntry* searchFile = fs.metaDataTable[searchFileIndex];
+	FileEntry* searchFile;
+	{
+		std::shared_lock<std::shared_mutex> lock(fs.metaMutex);
+		searchFile = fs.metaDataTable[searchFileIndex];
+	}
 	uint8_t tempAttributes = searchFile->attributes;
 	searchFile->attributes &= ~attribute;
-	int save = fs.saveDirectoryTable(disk, searchFileIndex);
+	int save = fs.saveDirectoryTable(disk, searchFileIndex, session);
 	if (save == 0) {
 		fs.metaDataTable[searchFileIndex]->attributes = tempAttributes;
 		std::cerr << "\tError: Cannot update attributes.\n";
@@ -77,14 +85,15 @@ std::string getAttributeString(const FileEntry* file) {
 	}
 	return attributes;
 }
-void renameFile(System& fs, FileEntry* file, const std::string& newName) {
-	std::string newFileName = std::to_string(fs.user.user_id) + std::to_string(fs.currentDir) + "F_" + newName;
+void renameFile(FileEntry* file, const std::string& newName, ClientSession* session) {
+	std::string newFileName = std::to_string(session->user.user_id) + std::to_string(session->currentDirectory) + "F_" + newName;
 	if (helpers::isValidFileName(newFileName)){
 		strncpy(file->fileName, newFileName.c_str(), FILE_NAME_LENGTH - 1);
 		file->fileName[FILE_NAME_LENGTH - 1] = '\0';
 		file->modified_at = std::time(nullptr);
-		std::cout << "Successfully renamed file.\n";
+		// std::cout << "Successfully renamed file.\n";
 	} else {
-		std::cerr << "Error: Invalid file name\n";
+		session->oss << "Error: Invalid file name\n";
+		// std::cout << "Error: Invalid file name\n";
 	}
 }

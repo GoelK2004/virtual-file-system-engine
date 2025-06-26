@@ -1,28 +1,35 @@
-#include "CLI.h"
+// #include "CLI.h"
+// #include "fileSystemInterface.h"
+// #include "system.h"
+// #include "VFS.h"
+// #include "mountManager.h"
+
+#include <signal.h>
+
 #include "fileSystemInterface.h"
 #include "system.h"
-#include "VFS.h"
-#include "mountManager.h"
+#include "UNIX/ipc_server.h"
+#include "UNIX/ipc_client.h"
 
-int main(){
-	
-    // Step 0: Creating a mount class
-    MountManager mountManager;
+void handle_sigint(int signal) {
+    cleanup();
+}
 
-    // Step 1: Creating a concrete file system
-    FileSystemInterface* fs = new System("/disks/myDisk.img");
-
-    // Step 2: Create and initialize VFS Manager
-    VFSManager* vfsManager = new VFSManager();
-    vfsManager->mount(fs); 
-    mountManager.mount("/dir1", "/disks/myDisk.img", "rootFS", vfsManager);
-
-    // Step 2: Pass this to the CLI
-    std::cout << "-----------------------------------------------------\n";
-    CommandLineInterface cli(mountManager.getCurrentVFS(), mountManager.getCurrentFSName());
-    cli.runCLI();
-
-    // Cleanup
-    delete fs;
+int main() {
+    signal(SIGINT, handle_sigint);
+    
+    // pid_t pid = fork();
+    // if (pid < 0) {
+    //     perror("fork failed");
+    //     return 1;
+    // }
+    // if (pid == 0) {
+    //     sleep(1);
+    //     run_client();
+    // } else {
+    //     run_server();
+    // }
+    if (!is_server_running())   run_server();
+    else  run_client();
     return 0;
 }

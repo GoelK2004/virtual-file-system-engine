@@ -21,6 +21,6 @@
 	// std::string readFileData(System& fs, std::fstream &disk, FileEntry* file);
 	// 	void deleteFile(System& fs, std::fstream &disk, FileEntry* file, const int fileInd);
 // }
-std::string readFileData(std::fstream &disk, FileEntry* file);
+// std::string readFileData(std::fstream &disk, FileEntry* file);
 
 #endif

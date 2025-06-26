@@ -1,10 +1,11 @@
 #pragma once
+
 #include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
-#include "VFS.h"
 
+#include "VFS.h"
 
 class CommandLineInterface {
 private:
@@ -16,5 +17,6 @@ public:
     void setVFS(VFSManager* vfsS) {
         this->vfs = vfsS;
     }
-	void runCLI();
+    std::string createPath(ClientSession* session);
+	std::string runCLI(std::string buffer, ClientSession* session);
 };

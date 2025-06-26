@@ -1,6 +1,7 @@
 #pragma once
 
 #include "define.h"
+#include <sstream>
 
 struct Superblock{
 	int totalBlocks;
@@ -93,5 +94,21 @@ struct User {
 	User() : password(0), totalSize(0), user_id(0), group_id(0) {
 		strncpy(userName, "root", USER_NAME_LENGTH);
 		userName[USER_NAME_LENGTH - 1] = '\0';
+	}
+};
+
+struct ClientSession {
+	bool active;
+	User user;
+	int currentDirectory;
+	std::string msg;
+	std::ostringstream oss;
+
+	ClientSession() {
+		active = true;
+		user = User();
+		currentDirectory = 0;
+		msg.clear();
+		oss.str("");
 	}
 };

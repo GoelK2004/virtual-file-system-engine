@@ -1,7 +1,7 @@
 #include "journaling.h"
 
 void JournalManager::loadJournal() {
-	std::lock_guard<std::mutex> lock(journalMutex);
+	std::unique_lock<std::mutex> lock(journalMutex);
 	journals.clear();
 	std::ifstream journalFile(journalFilePath);
 	if (!journalFile.is_open()) {
@@ -30,7 +30,7 @@ void JournalManager::loadJournal() {
 	std::cout << "[Journal] Loaded " << journals.size() << " entries from journal.\n";
 }
 void JournalManager::appendToFile(const FileJournaling& journal) {
-	std::lock_guard<std::mutex> lock(journalMutex);
+	// std::unique_lock<std::mutex> lock(journalMutex);
 	std::fstream journalFile(journalFilePath, std::ios::app);
 	journalFile.seekg(0, std::ios::end);
 	std::streampos pos = journalFile.tellg();
@@ -42,26 +42,29 @@ void JournalManager::appendToFile(const FileJournaling& journal) {
 	entryOffsets.push_back(pos);
 	journalFile.close();
 }
-uint64_t JournalManager::logOperation(const std::string& op, const std::string& fileName, const std::string& data, uint32_t fileSize) {
+uint64_t JournalManager::logOperation(std::string user, const std::string& op, const std::string& fileName, const std::string& newFileName, const std::string& data, uint32_t fileSize, const int currentDir) {
 	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	FileJournaling entry {
+		user,
 		timestamp,
 		op,
 		fileName,
+		newFileName,
+		currentDir,
 		fileSize,
 		data,
 		false,
 		false
 	};
 	{
-		std::lock_guard<std::mutex> lock(journalMutex);
+		std::unique_lock<std::mutex> lock(journalMutex);
 		journals.push_back(entry);
+		appendToFile(entry);
 	}
-	appendToFile(entry);
 	return timestamp;
 }
 void JournalManager::markCommitted(uint64_t timestamp) {
-	std::lock_guard<std::mutex> lock(journalMutex);
+	std::unique_lock<std::mutex> lock(journalMutex);
 	int low = 0, high = static_cast<int>(journals.size()) - 1, mid;
 	while (low <= high) {
 		mid = (low + high) / 2;
@@ -98,7 +101,7 @@ void JournalManager::markCommitted(uint64_t timestamp) {
 	}
 }
 void JournalManager::rewriteJournal() {
-	std::lock_guard<std::mutex> lock(journalMutex);
+	std::unique_lock<std::mutex> lock(journalMutex);
 	std::ofstream outFile(journalFilePath, std::ios::trunc);
 	if (!outFile.is_open())
 		throw std::runtime_error("Unable to open journal file for rewriting");
@@ -107,45 +110,51 @@ void JournalManager::rewriteJournal() {
 	}
 	outFile.close();
 }
-void JournalManager::recoverUncommitedOperations() {
-	std::lock_guard<std::mutex> lock(journalMutex);
+void JournalManager::recoverUncommitedOperations(std::string user, ClientSession* session) {
 	std::vector<FileJournaling> uncommitted;
-	for (const auto& entry : journals) {
-		if (!entry.committed) {
-			uncommitted.push_back(entry);
+	{
+		std::unique_lock<std::mutex> lock(journalMutex);
+		for (const auto& entry : journals) {
+			if (!entry.committed && entry.user == user) {
+				uncommitted.push_back(entry);
+			}
 		}
 	}
-	updateUncommitedOperations(uncommitted);
+	updateUncommitedOperations(uncommitted, session);
 }
-void JournalManager::updateUncommitedOperations(std::vector<FileJournaling>& uncommitted) {
+void JournalManager::updateUncommitedOperations(std::vector<FileJournaling>& uncommitted, ClientSession* session) {
 	for (auto& entry : uncommitted) {
 		entry.check = true;
 		if (entry.operation == OP_CREATE) {
 			int searchFileIndex = system->Entries->getFile(entry.fileName);
 			if (searchFileIndex != -1) {
-				FileEntry* searchFile = system->metaDataTable[searchFileIndex];
-				if (searchFile && searchFile->parentIndex == system->currentDir) {
+				FileEntry* searchFile;
+				{
+					std::shared_lock<std::shared_mutex> lock(system->metaMutex);
+					searchFile = system->metaDataTable[searchFileIndex];
+				}
+				if (searchFile && searchFile->parentIndex == entry.directory) {
 					continue;
 				}
 			} else {
-				entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-				system->createFiles(entry.fileName, entry.fileSize);
+				entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+				system->createFiles(entry.fileName, session, entry.fileSize, 0644, entry.check, entry.timestamp, &entry);
 			}
 		} else if (entry.operation == OP_DELETE_DIR) {
-			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->deleteDataDir(entry.fileName, entry.check, entry.timestamp);
+			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+			system->deleteDataDir(entry.fileName, session, entry.check, entry.timestamp, &entry);
 		} else if (entry.operation == OP_DELETE_FILE) {
-			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->deleteDataFile(entry.fileName, entry.check, entry.timestamp);
+			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+			system->deleteDataFile(entry.fileName, session, entry.check, entry.timestamp, &entry);
 		} else if (entry.operation == OP_WRITE) {
-			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->writeData(entry.fileName, entry.data, false, entry.check, entry.timestamp);
+			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+			system->writeData(entry.fileName, entry.data, false, session, entry.check, entry.timestamp, &entry);
 		} else if (entry.operation == OP_WRITE_APPEND) {
-			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->writeData(entry.fileName, entry.data, true, entry.check, entry.timestamp);
+			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+			system->writeData(entry.fileName, entry.data, true, session, entry.check, entry.timestamp, &entry);
 		} else if (entry.operation == OP_RENAME) {
-			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(system->currentDir).length() + std::to_string(system->user.user_id).length()));
-			system->renameFiles(entry.fileName, entry.fileName, entry.check, entry.timestamp);
+			entry.fileName.erase(0, 2 + static_cast<int>(std::to_string(entry.directory).length() + std::to_string(session->user.user_id).length()));
+			system->renameFiles(entry.fileName, entry.newFileName, session, entry.check, entry.timestamp, &entry);
 		} else	continue;
 	}
 }
