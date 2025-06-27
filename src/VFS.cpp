@@ -128,3 +128,6 @@ void VFSManager::tree(ClientSession* session, const std::string& path, int depth
 void VFSManager::bTree() {
     if (isMounted()) fs->bTree();
 }
+void VFSManager::show() {
+    if (isMounted()) fs->show();
+}

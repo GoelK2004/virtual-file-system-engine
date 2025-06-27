@@ -57,5 +57,6 @@ public:
 
 	// LOGS
 	void bTree();
+	void show();
 
 };

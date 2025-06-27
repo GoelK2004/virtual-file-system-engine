@@ -74,7 +74,7 @@ void createFile(System& fs, ClientSession* session, std::fstream &disk, const st
 	session->user.totalSize += newFile->fileSize;
 	
 	fs.Entries->insertFileEntry(savedName, fs.metaIndex);
-	// int key = fs.Entries->insertFileEntry(savedName, fs.metaIndex);
+	std::cout << newFile->fileName << ' ' << fs.metaDataTable.size() << '\n'; // LOGS
 	fs.metaDataTable.push_back(newFile);
 	fs.metaIndex++;
 	

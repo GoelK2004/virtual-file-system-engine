@@ -124,7 +124,7 @@ std::string CommandLineInterface::runCLI(std::string buffer, ClientSession* sess
 	else if (cmd == "tree" && args.size() == 1)	vfs->tree(session);
 	else if (cmd == "btree" && args.size() == 1)	vfs->bTree();
 	else if (cmd == "show" && args.size() == 1) {
-		std::cout << session->user.user_id << '\n';
+		vfs->show();
 	}
 	else if (cmd == "exit") {
 		std::cout << "Exiting file system, user: " << std::string(session->user.userName) << '\n';
