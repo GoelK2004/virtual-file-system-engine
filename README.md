@@ -61,14 +61,15 @@ A high-performance, modular, and feature-rich **Virtual File System** built from
 | Command       | Description |
 |---------------|-------------|
 | `help`        | View all the available command |
-| `create`      | Create a file with optional size |
+| `create`      | Create a file with optional size (path allowed) |
+| `rm`          | Delete a file (path allowed) |
 | `write`       | Write or overwrite data to a file |
 | `append`      | Append data to a file |
 | `read`        | Read file content |
 | `remove`      | Delete a file |
 | `rename`      | Rename a file or directory |
-| `mkdir`       | Create a new directory |
-| `rmdir`       | Remove a directory |
+| `mkdir`       | Create a new directory (path allowed) |
+| `rmdir`       | Remove a directory (path allowed) |
 | `cd`          | Change working directory |
 | `ls`          | List directory contents |
 | `stat`        | Show file metadata |
